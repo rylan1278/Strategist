@@ -13,22 +13,27 @@
       <a-sky color="#87CEEB"></a-sky>
       <a-plane color="#228B22" rotation="-90 0 0" width="50" height="50" static-body></a-plane>
 
-      <!-- The golf ball -->
+      <!-- Golf ball -->
       <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff" dynamic-body></a-sphere>
 
-      <!-- The hole -->
+      <!-- Hole -->
       <a-cylinder id="hole" position="0 0 -15" radius="0.7" height="0.1" color="#000000" static-body></a-cylinder>
 
-      <!-- Camera (disabled look-controls) -->
-      <a-entity id="cameraRig" position="0 2 10">
+      <!-- Camera rig (follows ball, angled down) -->
+      <a-entity id="cameraRig" position="0 3 8" rotation="-30 0 0">
         <a-camera wasd-controls-enabled="false" look-controls-enabled="false"></a-camera>
       </a-entity>
+
+      <!-- Line for aiming -->
+      <a-entity id="aimLine" line="start: 0 0 0; end: 0 0 0; color: red"></a-entity>
 
     </a-scene>
 
     <script>
       const ball = document.querySelector("#ball");
       const cameraRig = document.querySelector("#cameraRig");
+      const aimLine = document.querySelector("#aimLine");
+
       let isDragging = false;
       let startX, startZ;
 
@@ -39,6 +44,15 @@
         startZ = e.clientY;
       });
 
+      // Mouse move → update aiming line
+      window.addEventListener("mousemove", e => {
+        if (!isDragging) return;
+        const dx = (startX - e.clientX) / 50;
+        const dz = (startZ - e.clientY) / 50;
+        const pos = ball.getAttribute("position");
+        aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + dx} ${pos.y} ${pos.z + dz}; color: red`);
+      });
+
       // Mouse up → apply putt
       window.addEventListener("mouseup", e => {
         if (!isDragging) return;
@@ -46,17 +60,19 @@
 
         const dx = (startX - e.clientX) / 50;
         const dz = (startZ - e.clientY) / 50;
-
         ball.setAttribute("velocity", { x: dx, y: 0, z: dz });
+
+        // Hide aim line after shot
+        aimLine.setAttribute("line", `start: 0 0 0; end: 0 0 0; color: red`);
       });
 
-      // Follow ball
+      // Follow ball with camera
       function followBall() {
-        const ballPos = ball.getAttribute("position");
+        const pos = ball.getAttribute("position");
         cameraRig.setAttribute("position", {
-          x: ballPos.x,
-          y: ballPos.y + 2,
-          z: ballPos.z + 6
+          x: pos.x,
+          y: pos.y + 3,
+          z: pos.z + 8
         });
         requestAnimationFrame(followBall);
       }
