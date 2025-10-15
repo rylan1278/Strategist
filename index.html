@@ -37,18 +37,24 @@ const aimLine = document.querySelector("#aimLine");
 
 let ballVel = {x:0, z:0};
 
-// Current aiming direction in radians
-let aimAngle = 0;
-
-// Drag to change aim
+// Camera orbit variables
+let orbitAngle = 0; // horizontal orbit
+let orbitDistance = 6;
+let orbitHeight = 3;
 let isDragging = false;
 let lastX = 0;
-window.addEventListener("mousedown", e => { isDragging = true; lastX = e.clientX; });
+
+window.addEventListener("mousedown", e => {
+  isDragging = true;
+  lastX = e.clientX;
+});
+
 window.addEventListener("mouseup", e => isDragging = false);
+
 window.addEventListener("mousemove", e => {
   if (!isDragging) return;
   const dx = e.clientX - lastX;
-  aimAngle += dx * 0.005; // rotation speed
+  orbitAngle += dx * 0.005; // rotation speed
   lastX = e.clientX;
 });
 
@@ -56,13 +62,13 @@ window.addEventListener("mousemove", e => {
 window.addEventListener("click", e => {
   const pos = ball.getAttribute("position");
 
-  // Compute forward vector from aimAngle
-  const forward = {x: Math.sin(aimAngle), z: -Math.cos(aimAngle)};
+  // Compute forward vector based on camera orbit angle
+  const forward = {x: Math.sin(orbitAngle), z: -Math.cos(orbitAngle)};
   const power = 0.2;
   ballVel.x = forward.x * power;
   ballVel.z = forward.z * power;
 
-  // Show aim line briefly
+  // Temporary aim line
   aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + forward.x*2} ${pos.y} ${pos.z + forward.z*2}; color: red`);
   setTimeout(() => {
     aimLine.setAttribute("line", "start: 0 0 0; end: 0 0 0; color: red");
@@ -87,24 +93,19 @@ function updateBall() {
 }
 updateBall();
 
-// Camera follows behind ball
+// Camera orbit around ball
 function followBall() {
   const pos = ball.getAttribute("position");
 
-  const camDistance = 6;
-  const camHeight = 3;
-
-  // Camera offset behind the ball along aim direction
-  const offsetX = -Math.sin(aimAngle) * camDistance;
-  const offsetZ = Math.cos(aimAngle) * camDistance;
+  const offsetX = Math.sin(orbitAngle) * orbitDistance;
+  const offsetZ = Math.cos(orbitAngle) * orbitDistance;
 
   cameraRig.setAttribute("position", {
     x: pos.x + offsetX,
-    y: pos.y + camHeight,
+    y: pos.y + orbitHeight,
     z: pos.z + offsetZ
   });
 
-  // Camera always looks at the ball
   camera.object3D.lookAt(new THREE.Vector3(pos.x, pos.y + 0.5, pos.z));
 
   requestAnimationFrame(followBall);
