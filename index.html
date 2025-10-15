@@ -37,14 +37,14 @@ const aimLine = document.querySelector("#aimLine");
 
 let ballVel = {x:0, z:0};
 
-// Orbiting camera variables
-let orbitAngle = 0; // horizontal
-let orbitHeight = 3;
-let orbitDistance = 6;
+// Camera orbit variables
+let orbitAngle = 0; 
+const orbitHeight = 3;
+const orbitDistance = 6;
 let isDragging = false;
 let lastX = 0;
 
-// Drag to orbit camera
+// Drag horizontally to rotate camera around the ball
 window.addEventListener("mousedown", e => { isDragging = true; lastX = e.clientX; });
 window.addEventListener("mouseup", e => isDragging = false);
 window.addEventListener("mousemove", e => {
@@ -54,17 +54,17 @@ window.addEventListener("mousemove", e => {
   lastX = e.clientX;
 });
 
-// Space bar to putt
+// Press space bar to putt
 window.addEventListener("keydown", e => {
   if (e.code === "Space") {
     const pos = ball.getAttribute("position");
 
-    // Ball moves along vector from camera to ball (camera looks at ball)
+    // Ball moves in the camera's forward direction
     const camPos = cameraRig.getAttribute("position");
-    const dirX = pos.x - camPos.x;
-    const dirZ = pos.z - camPos.z;
-    const length = Math.sqrt(dirX*dirX + dirZ*dirZ);
-    const forward = {x: dirX/length, z: dirZ/length};
+    const forwardX = pos.x - camPos.x;
+    const forwardZ = pos.z - camPos.z;
+    const length = Math.sqrt(forwardX*forwardX + forwardZ*forwardZ);
+    const forward = {x: forwardX/length, z: forwardZ/length};
 
     const power = 0.2;
     ballVel.x = forward.x * power;
@@ -78,7 +78,7 @@ window.addEventListener("keydown", e => {
   }
 });
 
-// Update ball physics
+// Update ball position
 function updateBall() {
   const pos = ball.getAttribute("position");
   pos.x += ballVel.x;
@@ -86,7 +86,7 @@ function updateBall() {
   pos.y = 0.5;
   ball.setAttribute("position", pos);
 
-  // Damping
+  // Simple damping
   ballVel.x *= 0.95;
   ballVel.z *= 0.95;
   if (Math.abs(ballVel.x) < 0.001) ballVel.x = 0;
@@ -96,11 +96,11 @@ function updateBall() {
 }
 updateBall();
 
-// Orbit camera around ball
+// Camera follows and orbits behind the ball
 function updateCamera() {
   const pos = ball.getAttribute("position");
 
-  // Camera offset using orbit angle
+  // Offset behind the ball using orbit angle
   const offsetX = Math.sin(orbitAngle) * orbitDistance;
   const offsetZ = Math.cos(orbitAngle) * orbitDistance;
 
