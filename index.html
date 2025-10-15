@@ -21,7 +21,7 @@
 
     <!-- Camera rig -->
     <a-entity id="cameraRig" position="0 3 4">
-      <a-camera id="camera" wasd-controls-enabled="false" look-controls-enabled="true" rotation="-30 0 0"></a-camera>
+      <a-camera id="camera" wasd-controls-enabled="false" look-controls-enabled="true" rotation="-20 0 0"></a-camera>
     </a-entity>
 
     <!-- Aim line -->
@@ -37,9 +37,8 @@
 
     let ballVel = {x:0, z:0};
 
-    // Click to putt
+    // Click-to-putt
     window.addEventListener("click", e => {
-      // Ball position
       const pos = ball.getAttribute("position");
 
       // Forward vector from actual camera
@@ -62,7 +61,7 @@
       const pos = ball.getAttribute("position");
       pos.x += ballVel.x;
       pos.z += ballVel.z;
-      pos.y = 0.5; // keep on ground
+      pos.y = 0.5;
       ball.setAttribute("position", pos);
 
       // Damping
@@ -75,14 +74,31 @@
     }
     updateBall();
 
-    // Camera follows ball
+    // Third-person follow-behind camera
     function followBall() {
       const pos = ball.getAttribute("position");
+      const camOffset = new THREE.Vector3(0, 3, 4);
+
+      // If ball is moving, place camera behind it relative to movement
+      if (ballVel.x !== 0 || ballVel.z !== 0) {
+        const moveDir = new THREE.Vector3(ballVel.x, 0, ballVel.z).normalize();
+        camOffset.x = -moveDir.x * 4;
+        camOffset.z = -moveDir.z * 4;
+      } else {
+        // Default: behind negative Z
+        camOffset.x = 0;
+        camOffset.z = 4;
+      }
+
       cameraRig.setAttribute("position", {
-        x: pos.x,
-        y: pos.y + 3,
-        z: pos.z + 4
+        x: pos.x + camOffset.x,
+        y: pos.y + camOffset.y,
+        z: pos.z + camOffset.z
       });
+
+      // Look at the ball
+      camera.object3D.lookAt(new THREE.Vector3(pos.x, pos.y + 0.5, pos.z));
+
       requestAnimationFrame(followBall);
     }
     followBall();
