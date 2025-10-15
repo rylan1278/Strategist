@@ -37,21 +37,18 @@ const aimLine = document.querySelector("#aimLine");
 
 let ballVel = {x:0, z:0};
 
-// Camera rotation control
-let rotateAngle = 0;
+// Current aiming direction in radians
+let aimAngle = 0;
+
+// Drag to change aim
 let isDragging = false;
 let lastX = 0;
-
-window.addEventListener("mousedown", e => {
-  isDragging = true;
-  lastX = e.clientX;
-});
-
+window.addEventListener("mousedown", e => { isDragging = true; lastX = e.clientX; });
 window.addEventListener("mouseup", e => isDragging = false);
 window.addEventListener("mousemove", e => {
   if (!isDragging) return;
   const dx = e.clientX - lastX;
-  rotateAngle += dx * 0.005; // rotation speed
+  aimAngle += dx * 0.005; // rotation speed
   lastX = e.clientX;
 });
 
@@ -59,20 +56,20 @@ window.addEventListener("mousemove", e => {
 window.addEventListener("click", e => {
   const pos = ball.getAttribute("position");
 
-  // Use rotateAngle for forward direction
-  const forward = {x: Math.sin(rotateAngle), z: -Math.cos(rotateAngle)};
+  // Compute forward vector from aimAngle
+  const forward = {x: Math.sin(aimAngle), z: -Math.cos(aimAngle)};
   const power = 0.2;
   ballVel.x = forward.x * power;
   ballVel.z = forward.z * power;
 
-  // Temporary aim line
+  // Show aim line briefly
   aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + forward.x*2} ${pos.y} ${pos.z + forward.z*2}; color: red`);
   setTimeout(() => {
     aimLine.setAttribute("line", "start: 0 0 0; end: 0 0 0; color: red");
   }, 200);
 });
 
-// Update ball
+// Update ball manually
 function updateBall() {
   const pos = ball.getAttribute("position");
   pos.x += ballVel.x;
@@ -90,15 +87,16 @@ function updateBall() {
 }
 updateBall();
 
-// Camera follow behind ball
+// Camera follows behind ball
 function followBall() {
   const pos = ball.getAttribute("position");
+
   const camDistance = 6;
   const camHeight = 3;
 
-  // Compute behind vector from rotateAngle
-  const offsetX = Math.sin(rotateAngle) * -camDistance;
-  const offsetZ = Math.cos(rotateAngle) * camDistance;
+  // Camera offset behind the ball along aim direction
+  const offsetX = -Math.sin(aimAngle) * camDistance;
+  const offsetZ = Math.cos(aimAngle) * camDistance;
 
   cameraRig.setAttribute("position", {
     x: pos.x + offsetX,
@@ -106,6 +104,7 @@ function followBall() {
     z: pos.z + offsetZ
   });
 
+  // Camera always looks at the ball
   camera.object3D.lookAt(new THREE.Vector3(pos.x, pos.y + 0.5, pos.z));
 
   requestAnimationFrame(followBall);
