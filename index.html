@@ -1,0 +1,66 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Golf Game - Multi-Hole Course</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            pointer-events: none;
+        }
+        #story {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+        #power-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 20px;
+            background: gray;
+            display: none;
+        }
+        #power-fill {
+            height: 100%;
+            background: green;
+            width: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div id="current-hole">Hole: 1</div>
+        <div id="score">Strokes: 0</div>
+        <div id="message"></div>
+    </div>
+    <div id="story">
+        <h1>Golf Adventure</h1>
+        <p>You are a young golfer on a quest to master the ancient course of Eldoria. Legend says that only those who can complete the course in under par will unlock the hidden treasure. Swing your club wisely, avoid the hazards, and aim for the hole!</p>
+        <button onclick="startGame()">Start Game</button>
+    </div>
+    <div id="power-bar">
+        <div id="power-fill"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/cannon@0.6.2/build/cannon.min.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
