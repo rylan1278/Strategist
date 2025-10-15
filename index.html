@@ -15,7 +15,7 @@
       <a-plane color="#228B22" rotation="-90 0 0" width="50" height="50" static-body></a-plane>
 
       <!-- Golf ball -->
-      <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff" dynamic-body="mass:1; linearDamping:0.2; angularDamping:0.4"></a-sphere>
+      <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff" dynamic-body="mass:1; linearDamping:0.3; angularDamping:0.4"></a-sphere>
 
       <!-- Hole -->
       <a-cylinder id="hole" position="0 0 -15" radius="0.7" height="0.1" color="#000000" static-body></a-cylinder>
@@ -38,38 +38,42 @@
       let isDragging = false;
       let startX, startZ;
 
-      // Mouse down → start aiming
-      window.addEventListener("mousedown", e => {
-        isDragging = true;
-        startX = e.clientX;
-        startZ = e.clientY;
-      });
+      // Wait for the physics body to load
+      ball.addEventListener('body-loaded', () => {
 
-      // Mouse move → update aiming line
-      window.addEventListener("mousemove", e => {
-        if (!isDragging) return;
-        const dx = (startX - e.clientX) / 50;
-        const dz = (startZ - e.clientY) / 50;
-        const pos = ball.getAttribute("position");
-        aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + dx} ${pos.y} ${pos.z + dz}; color: red`);
-      });
+        // Mouse down → start aiming
+        window.addEventListener("mousedown", e => {
+          isDragging = true;
+          startX = e.clientX;
+          startZ = e.clientY;
+        });
 
-      // Mouse up → apply putt as force
-      window.addEventListener("mouseup", e => {
-        if (!isDragging) return;
-        isDragging = false;
+        // Mouse move → update aim line
+        window.addEventListener("mousemove", e => {
+          if (!isDragging) return;
+          const dx = (startX - e.clientX) / 50;
+          const dz = (startZ - e.clientY) / 50;
+          const pos = ball.getAttribute("position");
+          aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + dx} ${pos.y} ${pos.z + dz}; color: red`);
+        });
 
-        const dx = (startX - e.clientX) / 10; // increase power scale
-        const dz = (startZ - e.clientY) / 10;
+        // Mouse up → apply impulse
+        window.addEventListener("mouseup", e => {
+          if (!isDragging) return;
+          isDragging = false;
 
-        // Apply impulse for rolling
-        ball.body.applyImpulse(
-          new CANNON.Vec3(dx, 0, dz),
-          ball.body.position
-        );
+          const dx = (startX - e.clientX) / 10; // power scale
+          const dz = (startZ - e.clientY) / 10;
 
-        // Hide aim line
-        aimLine.setAttribute("line", `start: 0 0 0; end: 0 0 0; color: red`);
+          ball.body.applyImpulse(
+            new CANNON.Vec3(dx, 0, dz),
+            ball.body.position
+          );
+
+          // Hide aim line
+          aimLine.setAttribute("line", `start: 0 0 0; end: 0 0 0; color: red`);
+        });
+
       });
 
       // Follow ball with camera
