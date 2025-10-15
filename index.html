@@ -36,35 +36,51 @@ const camera = document.querySelector("#camera");
 const aimArrow = document.querySelector("#aimArrow");
 
 let ballVel = {x:0, z:0};
-let aimAngle = 0; // independent ball aiming
-let orbitAngle = 0; // camera orbit
-const orbitDistance = 6;
+let aimAngle = 0; // arrow keys control ball aim
 const orbitHeight = 3;
+let orbitX = 0; // camera position relative to ball
+let orbitZ = 6;
 
-// ----- Camera orbit controls -----
-let isDragging = false;
-let lastX = 0;
-window.addEventListener("mousedown", e => { isDragging = true; lastX = e.clientX; });
-window.addEventListener("mouseup", e => isDragging = false);
-window.addEventListener("mousemove", e => {
-  if (!isDragging) return;
-  const dx = e.clientX - lastX;
-  orbitAngle += dx * 0.005;
-  lastX = e.clientX;
-});
+// ----- Camera controls (W/A/S/D) -----
+const camSpeed = 0.2;
+const keys = {};
+window.addEventListener("keydown", e => keys[e.code] = true);
+window.addEventListener("keyup", e => keys[e.code] = false);
 
-// ----- Ball aim controls -----
+// ----- Ball aim controls (Arrow Left/Right) -----
 window.addEventListener("keydown", e => {
   if (e.code === "ArrowLeft") aimAngle -= 0.05;
   if (e.code === "ArrowRight") aimAngle += 0.05;
 
-  // Space bar to shoot
+  // Space bar shoots the ball
   if (e.code === "Space") {
     const power = 0.2;
     ballVel.x = Math.sin(aimAngle) * power;
     ballVel.z = -Math.cos(aimAngle) * power;
   }
 });
+
+// ----- Update camera -----
+function updateCamera() {
+  const pos = ball.getAttribute("position");
+
+  // WASD camera movement around ball
+  if (keys['KeyW']) orbitZ -= camSpeed;
+  if (keys['KeyS']) orbitZ += camSpeed;
+  if (keys['KeyA']) orbitX -= camSpeed;
+  if (keys['KeyD']) orbitX += camSpeed;
+
+  cameraRig.setAttribute("position", {
+    x: pos.x + orbitX,
+    y: pos.y + orbitHeight,
+    z: pos.z + orbitZ
+  });
+
+  camera.object3D.lookAt(new THREE.Vector3(pos.x, pos.y + 0.5, pos.z));
+
+  requestAnimationFrame(updateCamera);
+}
+updateCamera();
 
 // ----- Update ball -----
 function updateBall() {
@@ -82,23 +98,6 @@ function updateBall() {
   requestAnimationFrame(updateBall);
 }
 updateBall();
-
-// ----- Update camera -----
-function updateCamera() {
-  const pos = ball.getAttribute("position");
-  const offsetX = Math.sin(orbitAngle) * orbitDistance;
-  const offsetZ = Math.cos(orbitAngle) * orbitDistance;
-
-  cameraRig.setAttribute("position", {
-    x: pos.x + offsetX,
-    y: pos.y + orbitHeight,
-    z: pos.z + offsetZ
-  });
-
-  camera.object3D.lookAt(new THREE.Vector3(pos.x, pos.y + 0.5, pos.z));
-  requestAnimationFrame(updateCamera);
-}
-updateCamera();
 
 // ----- Update aim arrow -----
 function updateAimArrow() {
