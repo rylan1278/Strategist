@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mini Golf Game</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   </head>
@@ -19,15 +19,16 @@
       <!-- The hole -->
       <a-cylinder id="hole" position="0 0 -15" radius="0.7" height="0.1" color="#000000" static-body></a-cylinder>
 
-      <!-- Camera -->
-      <a-entity position="0 2 10">
-        <a-camera></a-camera>
+      <!-- Camera (disabled look-controls) -->
+      <a-entity id="cameraRig" position="0 2 10">
+        <a-camera wasd-controls-enabled="false" look-controls-enabled="false"></a-camera>
       </a-entity>
 
     </a-scene>
 
     <script>
       const ball = document.querySelector("#ball");
+      const cameraRig = document.querySelector("#cameraRig");
       let isDragging = false;
       let startX, startZ;
 
@@ -46,9 +47,20 @@
         const dx = (startX - e.clientX) / 50;
         const dz = (startZ - e.clientY) / 50;
 
-        // Apply a simple velocity
         ball.setAttribute("velocity", { x: dx, y: 0, z: dz });
       });
+
+      // Follow ball
+      function followBall() {
+        const ballPos = ball.getAttribute("position");
+        cameraRig.setAttribute("position", {
+          x: ballPos.x,
+          y: ballPos.y + 2,
+          z: ballPos.z + 6
+        });
+        requestAnimationFrame(followBall);
+      }
+      followBall();
     </script>
   </body>
 </html>
