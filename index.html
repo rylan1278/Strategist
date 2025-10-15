@@ -3,26 +3,52 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Strategist Game</title>
+    <title>Mini Golf Game</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   </head>
   <body>
-    <a-scene>
-      <!-- Blue sky -->
-      <a-sky color="#87CEEB"></a-sky>
+    <a-scene physics="gravity: -9.8">
 
-      <!-- Green ground -->
-      <a-plane 
-        color="#228B22" 
-        rotation="-90 0 0" 
-        width="100" 
-        height="100">
-      </a-plane>
+      <!-- Sky and ground -->
+      <a-sky color="#87CEEB"></a-sky>
+      <a-plane color="#228B22" rotation="-90 0 0" width="50" height="50" static-body></a-plane>
+
+      <!-- The golf ball -->
+      <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff" dynamic-body></a-sphere>
+
+      <!-- The hole -->
+      <a-cylinder id="hole" position="0 0 -15" radius="0.7" height="0.1" color="#000000" static-body></a-cylinder>
 
       <!-- Camera -->
-      <a-entity position="0 1.6 4">
+      <a-entity position="0 2 10">
         <a-camera></a-camera>
       </a-entity>
+
     </a-scene>
+
+    <script>
+      const ball = document.querySelector("#ball");
+      let isDragging = false;
+      let startX, startZ;
+
+      // Mouse down → start aiming
+      window.addEventListener("mousedown", e => {
+        isDragging = true;
+        startX = e.clientX;
+        startZ = e.clientY;
+      });
+
+      // Mouse up → apply putt
+      window.addEventListener("mouseup", e => {
+        if (!isDragging) return;
+        isDragging = false;
+
+        const dx = (startX - e.clientX) / 50;
+        const dz = (startZ - e.clientY) / 50;
+
+        // Apply a simple velocity
+        ball.setAttribute("velocity", { x: dx, y: 0, z: dz });
+      });
+    </script>
   </body>
 </html>
