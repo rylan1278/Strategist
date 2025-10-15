@@ -37,8 +37,8 @@ const aimLine = document.querySelector("#aimLine");
 
 let ballVel = {x:0, z:0};
 
-// Camera orbit variables
-let orbitAngle = 0; 
+// Orbiting camera variables
+let orbitAngle = 0; // horizontal
 let orbitHeight = 3;
 let orbitDistance = 6;
 let isDragging = false;
@@ -58,11 +58,19 @@ window.addEventListener("mousemove", e => {
 window.addEventListener("keydown", e => {
   if (e.code === "Space") {
     const pos = ball.getAttribute("position");
-    const forward = {x: Math.sin(orbitAngle), z: -Math.cos(orbitAngle)};
+
+    // Ball moves along vector from camera to ball (camera looks at ball)
+    const camPos = cameraRig.getAttribute("position");
+    const dirX = pos.x - camPos.x;
+    const dirZ = pos.z - camPos.z;
+    const length = Math.sqrt(dirX*dirX + dirZ*dirZ);
+    const forward = {x: dirX/length, z: dirZ/length};
+
     const power = 0.2;
     ballVel.x = forward.x * power;
     ballVel.z = forward.z * power;
 
+    // Temporary aim line
     aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + forward.x*2} ${pos.y} ${pos.z + forward.z*2}; color: red`);
     setTimeout(() => {
       aimLine.setAttribute("line", "start: 0 0 0; end: 0 0 0; color: red");
@@ -78,6 +86,7 @@ function updateBall() {
   pos.y = 0.5;
   ball.setAttribute("position", pos);
 
+  // Damping
   ballVel.x *= 0.95;
   ballVel.z *= 0.95;
   if (Math.abs(ballVel.x) < 0.001) ballVel.x = 0;
@@ -87,9 +96,11 @@ function updateBall() {
 }
 updateBall();
 
-// Camera orbit around ball
+// Orbit camera around ball
 function updateCamera() {
   const pos = ball.getAttribute("position");
+
+  // Camera offset using orbit angle
   const offsetX = Math.sin(orbitAngle) * orbitDistance;
   const offsetZ = Math.cos(orbitAngle) * orbitDistance;
 
@@ -100,6 +111,7 @@ function updateCamera() {
   });
 
   camera.object3D.lookAt(new THREE.Vector3(pos.x, pos.y + 0.5, pos.z));
+
   requestAnimationFrame(updateCamera);
 }
 updateCamera();
