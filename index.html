@@ -13,15 +13,15 @@
       <a-sky color="#87CEEB"></a-sky>
       <a-plane color="#228B22" rotation="-90 0 0" width="50" height="50"></a-plane>
 
-      <!-- Golf ball -->
+      <!-- Golf ball (raised by radius so it sits on ground) -->
       <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff"></a-sphere>
 
       <!-- Hole -->
       <a-cylinder id="hole" position="0 0 -15" radius="0.7" height="0.1" color="#000000"></a-cylinder>
 
       <!-- Camera rig -->
-      <a-entity id="cameraRig" position="0 3 8" rotation="-30 0 0">
-        <a-camera wasd-controls-enabled="false" look-controls-enabled="false"></a-camera>
+      <a-entity id="cameraRig" position="0 3 8">
+        <a-camera wasd-controls-enabled="false" look-controls-enabled="true"></a-camera>
       </a-entity>
 
       <!-- Aim line -->
@@ -38,19 +38,19 @@
 
       // Click to putt
       window.addEventListener("click", e => {
-        // Get ball position
+        // Ball position
         const pos = ball.getAttribute("position");
 
-        // Compute forward direction based on camera rotation
+        // Forward direction based on camera rotation
         const cam = cameraRig.object3D;
         const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion).normalize();
 
-        // Set velocity vector (power can be adjusted)
+        // Velocity vector
         const power = 0.2;
         ballVel.x = forward.x * power;
         ballVel.z = forward.z * power;
 
-        // Show aim line briefly
+        // Temporary aim line
         aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + forward.x*2} ${pos.y} ${pos.z + forward.z*2}; color: red`);
         setTimeout(() => {
           aimLine.setAttribute("line", "start: 0 0 0; end: 0 0 0; color: red");
@@ -64,11 +64,12 @@
         pos.z += ballVel.z;
         ball.setAttribute("position", pos);
 
-        // Apply simple damping
+        // Keep ball on top of ground
+        pos.y = 0.5;
+
+        // Damping
         ballVel.x *= 0.95;
         ballVel.z *= 0.95;
-
-        // Stop if velocity is very small
         if (Math.abs(ballVel.x) < 0.001) ballVel.x = 0;
         if (Math.abs(ballVel.z) < 0.001) ballVel.z = 0;
 
