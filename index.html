@@ -13,7 +13,7 @@
   <a-sky color="#87CEEB"></a-sky>
   <a-plane color="#228B22" rotation="-90 0 0" width="50" height="50"></a-plane>
 
-  <!-- Golf ball -->
+  <!-- Ball -->
   <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff"></a-sphere>
 
   <!-- Hole -->
@@ -38,44 +38,39 @@ const aimLine = document.querySelector("#aimLine");
 let ballVel = {x:0, z:0};
 
 // Camera orbit variables
-let orbitAngle = 0; // horizontal orbit
-let orbitDistance = 6;
+let orbitAngle = 0; 
 let orbitHeight = 3;
+let orbitDistance = 6;
 let isDragging = false;
 let lastX = 0;
 
-window.addEventListener("mousedown", e => {
-  isDragging = true;
-  lastX = e.clientX;
-});
-
+// Drag to orbit camera
+window.addEventListener("mousedown", e => { isDragging = true; lastX = e.clientX; });
 window.addEventListener("mouseup", e => isDragging = false);
-
 window.addEventListener("mousemove", e => {
   if (!isDragging) return;
   const dx = e.clientX - lastX;
-  orbitAngle += dx * 0.005; // rotation speed
+  orbitAngle += dx * 0.005;
   lastX = e.clientX;
 });
 
-// Click-to-putt
-window.addEventListener("click", e => {
-  const pos = ball.getAttribute("position");
+// Space bar to putt
+window.addEventListener("keydown", e => {
+  if (e.code === "Space") {
+    const pos = ball.getAttribute("position");
+    const forward = {x: Math.sin(orbitAngle), z: -Math.cos(orbitAngle)};
+    const power = 0.2;
+    ballVel.x = forward.x * power;
+    ballVel.z = forward.z * power;
 
-  // Compute forward vector based on camera orbit angle
-  const forward = {x: Math.sin(orbitAngle), z: -Math.cos(orbitAngle)};
-  const power = 0.2;
-  ballVel.x = forward.x * power;
-  ballVel.z = forward.z * power;
-
-  // Temporary aim line
-  aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + forward.x*2} ${pos.y} ${pos.z + forward.z*2}; color: red`);
-  setTimeout(() => {
-    aimLine.setAttribute("line", "start: 0 0 0; end: 0 0 0; color: red");
-  }, 200);
+    aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + forward.x*2} ${pos.y} ${pos.z + forward.z*2}; color: red`);
+    setTimeout(() => {
+      aimLine.setAttribute("line", "start: 0 0 0; end: 0 0 0; color: red");
+    }, 200);
+  }
 });
 
-// Update ball manually
+// Update ball physics
 function updateBall() {
   const pos = ball.getAttribute("position");
   pos.x += ballVel.x;
@@ -83,7 +78,6 @@ function updateBall() {
   pos.y = 0.5;
   ball.setAttribute("position", pos);
 
-  // Damping
   ballVel.x *= 0.95;
   ballVel.z *= 0.95;
   if (Math.abs(ballVel.x) < 0.001) ballVel.x = 0;
@@ -94,9 +88,8 @@ function updateBall() {
 updateBall();
 
 // Camera orbit around ball
-function followBall() {
+function updateCamera() {
   const pos = ball.getAttribute("position");
-
   const offsetX = Math.sin(orbitAngle) * orbitDistance;
   const offsetZ = Math.cos(orbitAngle) * orbitDistance;
 
@@ -107,10 +100,9 @@ function followBall() {
   });
 
   camera.object3D.lookAt(new THREE.Vector3(pos.x, pos.y + 0.5, pos.z));
-
-  requestAnimationFrame(followBall);
+  requestAnimationFrame(updateCamera);
 }
-followBall();
+updateCamera();
 </script>
 </body>
 </html>
