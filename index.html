@@ -24,27 +24,26 @@
     <a-camera id="camera"></a-camera>
   </a-entity>
 
-  <!-- Aim line -->
-  <a-entity id="aimLine" line="start: 0 0 0; end: 0 0 0; color: red"></a-entity>
+  <!-- Aim arrow -->
+  <a-entity id="aimArrow" line="start: 0 0.5 0; end: 0 0.5 -2; color: red"></a-entity>
 
 </a-scene>
 
 <script>
 const ball = document.querySelector("#ball");
-const camera = document.querySelector("#camera");
 const cameraRig = document.querySelector("#cameraRig");
-const aimLine = document.querySelector("#aimLine");
+const camera = document.querySelector("#camera");
+const aimArrow = document.querySelector("#aimArrow");
 
 let ballVel = {x:0, z:0};
-
-// Camera orbit variables
-let orbitAngle = 0; 
-const orbitHeight = 3;
+let aimAngle = 0; // independent ball aiming
+let orbitAngle = 0; // camera orbit
 const orbitDistance = 6;
+const orbitHeight = 3;
+
+// ----- Camera orbit controls -----
 let isDragging = false;
 let lastX = 0;
-
-// Drag horizontally to rotate camera around the ball
 window.addEventListener("mousedown", e => { isDragging = true; lastX = e.clientX; });
 window.addEventListener("mouseup", e => isDragging = false);
 window.addEventListener("mousemove", e => {
@@ -54,31 +53,20 @@ window.addEventListener("mousemove", e => {
   lastX = e.clientX;
 });
 
-// Press space bar to putt
+// ----- Ball aim controls -----
 window.addEventListener("keydown", e => {
+  if (e.code === "ArrowLeft" || e.code === "KeyA") aimAngle -= 0.05;
+  if (e.code === "ArrowRight" || e.code === "KeyD") aimAngle += 0.05;
+
+  // Space bar to shoot
   if (e.code === "Space") {
-    const pos = ball.getAttribute("position");
-
-    // Ball moves in the camera's forward direction
-    const camPos = cameraRig.getAttribute("position");
-    const forwardX = pos.x - camPos.x;
-    const forwardZ = pos.z - camPos.z;
-    const length = Math.sqrt(forwardX*forwardX + forwardZ*forwardZ);
-    const forward = {x: forwardX/length, z: forwardZ/length};
-
     const power = 0.2;
-    ballVel.x = forward.x * power;
-    ballVel.z = forward.z * power;
-
-    // Temporary aim line
-    aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + forward.x*2} ${pos.y} ${pos.z + forward.z*2}; color: red`);
-    setTimeout(() => {
-      aimLine.setAttribute("line", "start: 0 0 0; end: 0 0 0; color: red");
-    }, 200);
+    ballVel.x = Math.sin(aimAngle) * power;
+    ballVel.z = -Math.cos(aimAngle) * power;
   }
 });
 
-// Update ball position
+// ----- Update ball -----
 function updateBall() {
   const pos = ball.getAttribute("position");
   pos.x += ballVel.x;
@@ -86,7 +74,6 @@ function updateBall() {
   pos.y = 0.5;
   ball.setAttribute("position", pos);
 
-  // Simple damping
   ballVel.x *= 0.95;
   ballVel.z *= 0.95;
   if (Math.abs(ballVel.x) < 0.001) ballVel.x = 0;
@@ -96,11 +83,9 @@ function updateBall() {
 }
 updateBall();
 
-// Camera follows and orbits behind the ball
+// ----- Update camera -----
 function updateCamera() {
   const pos = ball.getAttribute("position");
-
-  // Offset behind the ball using orbit angle
   const offsetX = Math.sin(orbitAngle) * orbitDistance;
   const offsetZ = Math.cos(orbitAngle) * orbitDistance;
 
@@ -111,10 +96,19 @@ function updateCamera() {
   });
 
   camera.object3D.lookAt(new THREE.Vector3(pos.x, pos.y + 0.5, pos.z));
-
   requestAnimationFrame(updateCamera);
 }
 updateCamera();
+
+// ----- Update aim arrow -----
+function updateAimArrow() {
+  const pos = ball.getAttribute("position");
+  const endX = pos.x + Math.sin(aimAngle) * 2;
+  const endZ = pos.z - Math.cos(aimAngle) * 2;
+  aimArrow.setAttribute("line", `start: ${pos.x} 0.5 ${pos.z}; end: ${endX} 0.5 ${endZ}; color: red`);
+  requestAnimationFrame(updateAimArrow);
+}
+updateAimArrow();
 </script>
 </body>
 </html>
