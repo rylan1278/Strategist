@@ -1,13 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mini Golf Game</title>
-
-    <!-- A-Frame 1.5.0 -->
+    <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <!-- Updated physics system compatible with A-Frame 1.5.0 -->
+    <!-- Physics system compatible with A-Frame 1.5.0 -->
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-physics-system@v5.0.0/dist/aframe-physics-system.min.js"></script>
   </head>
   <body>
@@ -18,8 +17,8 @@
       <a-plane color="#228B22" rotation="-90 0 0" width="50" height="50" static-body></a-plane>
 
       <!-- Golf ball -->
-      <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff" 
-                dynamic-body="mass:1; linearDamping:0.4; angularDamping:0.4"></a-sphere>
+      <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff"
+                dynamic-body="mass:1; linearDamping:0.3; angularDamping:0.4"></a-sphere>
 
       <!-- Hole -->
       <a-cylinder id="hole" position="0 0 -15" radius="0.7" height="0.1" color="#000000" static-body></a-cylinder>
@@ -39,41 +38,30 @@
       const cameraRig = document.querySelector("#cameraRig");
       const aimLine = document.querySelector("#aimLine");
 
-      let isDragging = false;
-      let startX, startZ;
-
-      // Wait until the physics body is ready
+      // When the physics body is ready
       ball.addEventListener('body-loaded', () => {
 
-        // Mouse down → start aiming
-        window.addEventListener("mousedown", e => {
-          isDragging = true;
-          startX = e.clientX;
-          startZ = e.clientY;
-        });
-
-        // Mouse move → update aim line
-        window.addEventListener("mousemove", e => {
-          if (!isDragging) return;
-          const dx = (startX - e.clientX) / 50;
-          const dz = (startZ - e.clientY) / 50;
+        // Click to putt
+        window.addEventListener("click", e => {
+          // Get ball position
           const pos = ball.getAttribute("position");
-          aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + dx} ${pos.y} ${pos.z + dz}; color: red`);
-        });
 
-        // Mouse up → apply putt as impulse
-        window.addEventListener("mouseup", e => {
-          if (!isDragging) return;
-          isDragging = false;
+          // Compute forward direction based on camera angle
+          const cam = cameraRig.object3D;
+          const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion).normalize();
 
-          const dx = (startX - e.clientX) / 10; // scale for power
-          const dz = (startZ - e.clientY) / 10;
+          // Scale force by distance from camera click (optional: you can make power fixed)
+          const power = 5;
+          const impulse = new CANNON.Vec3(forward.x * power, 0, forward.z * power);
 
-          const body = ball.components['dynamic-body'].body;
-          body.applyImpulse(new CANNON.Vec3(dx, 0, dz), body.position);
+          // Apply impulse to ball
+          ball.components['dynamic-body'].body.applyImpulse(impulse, ball.components['dynamic-body'].body.position);
 
-          // Hide aim line
-          aimLine.setAttribute("line", `start: 0 0 0; end: 0 0 0; color: red`);
+          // Update aim line to show direction and power briefly
+          aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + forward.x * power} ${pos.y} ${pos.z + forward.z * power}; color: red`);
+          setTimeout(() => {
+            aimLine.setAttribute("line", "start: 0 0 0; end: 0 0 0; color: red");
+          }, 300);
         });
 
       });
