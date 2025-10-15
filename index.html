@@ -1,93 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mini Golf Game</title>
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  </head>
-  <body>
-    <a-scene>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini Golf Game</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+</head>
+<body>
+  <a-scene>
 
-      <!-- Sky and ground -->
-      <a-sky color="#87CEEB"></a-sky>
-      <a-plane color="#228B22" rotation="-90 0 0" width="50" height="50"></a-plane>
+    <!-- Sky and ground -->
+    <a-sky color="#87CEEB"></a-sky>
+    <a-plane color="#228B22" rotation="-90 0 0" width="50" height="50"></a-plane>
 
-      <!-- Golf ball (raised by radius so it sits on ground) -->
-      <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff"></a-sphere>
+    <!-- Golf ball -->
+    <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff"></a-sphere>
 
-      <!-- Hole -->
-      <a-cylinder id="hole" position="0 0 -15" radius="0.7" height="0.1" color="#000000"></a-cylinder>
+    <!-- Hole -->
+    <a-cylinder id="hole" position="0 0 -15" radius="0.7" height="0.1" color="#000000"></a-cylinder>
 
-      <!-- Camera rig -->
-      <a-entity id="cameraRig" position="0 3 8">
-        <a-camera wasd-controls-enabled="false" look-controls-enabled="true"></a-camera>
-      </a-entity>
+    <!-- Camera rig -->
+    <a-entity id="cameraRig" position="0 3 4">
+      <a-camera id="camera" wasd-controls-enabled="false" look-controls-enabled="true" rotation="-30 0 0"></a-camera>
+    </a-entity>
 
-      <!-- Aim line -->
-      <a-entity id="aimLine" line="start: 0 0 0; end: 0 0 0; color: red"></a-entity>
+    <!-- Aim line -->
+    <a-entity id="aimLine" line="start: 0 0 0; end: 0 0 0; color: red"></a-entity>
 
-    </a-scene>
+  </a-scene>
 
-    <script>
-      const ball = document.querySelector("#ball");
-      const cameraRig = document.querySelector("#cameraRig");
-      const aimLine = document.querySelector("#aimLine");
+  <script>
+    const ball = document.querySelector("#ball");
+    const camera = document.querySelector("#camera");
+    const cameraRig = document.querySelector("#cameraRig");
+    const aimLine = document.querySelector("#aimLine");
 
-      let ballVel = {x:0, z:0};
+    let ballVel = {x:0, z:0};
 
-      // Click to putt
-      window.addEventListener("click", e => {
-        // Ball position
-        const pos = ball.getAttribute("position");
+    // Click to putt
+    window.addEventListener("click", e => {
+      // Ball position
+      const pos = ball.getAttribute("position");
 
-        // Forward direction based on camera rotation
-        const cam = cameraRig.object3D;
-        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion).normalize();
+      // Forward vector from actual camera
+      const camObj = camera.object3D;
+      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camObj.quaternion).normalize();
 
-        // Velocity vector
-        const power = 0.2;
-        ballVel.x = forward.x * power;
-        ballVel.z = forward.z * power;
+      const power = 0.2;
+      ballVel.x = forward.x * power;
+      ballVel.z = forward.z * power;
 
-        // Temporary aim line
-        aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + forward.x*2} ${pos.y} ${pos.z + forward.z*2}; color: red`);
-        setTimeout(() => {
-          aimLine.setAttribute("line", "start: 0 0 0; end: 0 0 0; color: red");
-        }, 200);
+      // Temporary aim line
+      aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + forward.x*2} ${pos.y} ${pos.z + forward.z*2}; color: red`);
+      setTimeout(() => {
+        aimLine.setAttribute("line", "start: 0 0 0; end: 0 0 0; color: red");
+      }, 200);
+    });
+
+    // Update ball manually
+    function updateBall() {
+      const pos = ball.getAttribute("position");
+      pos.x += ballVel.x;
+      pos.z += ballVel.z;
+      pos.y = 0.5; // keep on ground
+      ball.setAttribute("position", pos);
+
+      // Damping
+      ballVel.x *= 0.95;
+      ballVel.z *= 0.95;
+      if (Math.abs(ballVel.x) < 0.001) ballVel.x = 0;
+      if (Math.abs(ballVel.z) < 0.001) ballVel.z = 0;
+
+      requestAnimationFrame(updateBall);
+    }
+    updateBall();
+
+    // Camera follows ball
+    function followBall() {
+      const pos = ball.getAttribute("position");
+      cameraRig.setAttribute("position", {
+        x: pos.x,
+        y: pos.y + 3,
+        z: pos.z + 4
       });
-
-      // Update ball position manually
-      function updateBall() {
-        const pos = ball.getAttribute("position");
-        pos.x += ballVel.x;
-        pos.z += ballVel.z;
-        ball.setAttribute("position", pos);
-
-        // Keep ball on top of ground
-        pos.y = 0.5;
-
-        // Damping
-        ballVel.x *= 0.95;
-        ballVel.z *= 0.95;
-        if (Math.abs(ballVel.x) < 0.001) ballVel.x = 0;
-        if (Math.abs(ballVel.z) < 0.001) ballVel.z = 0;
-
-        requestAnimationFrame(updateBall);
-      }
-      updateBall();
-
-      // Camera follows ball
-      function followBall() {
-        const pos = ball.getAttribute("position");
-        cameraRig.setAttribute("position", {
-          x: pos.x,
-          y: pos.y + 3,
-          z: pos.z + 8
-        });
-        requestAnimationFrame(followBall);
-      }
-      followBall();
-    </script>
-  </body>
+      requestAnimationFrame(followBall);
+    }
+    followBall();
+  </script>
+</body>
 </html>
