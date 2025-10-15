@@ -7,101 +7,110 @@
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 </head>
 <body>
-  <a-scene>
+<a-scene>
 
-    <!-- Sky and ground -->
-    <a-sky color="#87CEEB"></a-sky>
-    <a-plane color="#228B22" rotation="-90 0 0" width="50" height="50"></a-plane>
+  <!-- Sky and ground -->
+  <a-sky color="#87CEEB"></a-sky>
+  <a-plane color="#228B22" rotation="-90 0 0" width="50" height="50"></a-plane>
 
-    <!-- Golf ball -->
-    <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff"></a-sphere>
+  <!-- Golf ball -->
+  <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff"></a-sphere>
 
-    <!-- Hole -->
-    <a-cylinder id="hole" position="0 0 -15" radius="0.7" height="0.1" color="#000000"></a-cylinder>
+  <!-- Hole -->
+  <a-cylinder id="hole" position="0 0 -15" radius="0.7" height="0.1" color="#000000"></a-cylinder>
 
-    <!-- Camera rig -->
-    <a-entity id="cameraRig" position="0 3 4">
-      <a-camera id="camera" wasd-controls-enabled="false" look-controls-enabled="true" rotation="-20 0 0"></a-camera>
-    </a-entity>
+  <!-- Camera rig -->
+  <a-entity id="cameraRig" position="0 3 6">
+    <a-camera id="camera"></a-camera>
+  </a-entity>
 
-    <!-- Aim line -->
-    <a-entity id="aimLine" line="start: 0 0 0; end: 0 0 0; color: red"></a-entity>
+  <!-- Aim line -->
+  <a-entity id="aimLine" line="start: 0 0 0; end: 0 0 0; color: red"></a-entity>
 
-  </a-scene>
+</a-scene>
 
-  <script>
-    const ball = document.querySelector("#ball");
-    const camera = document.querySelector("#camera");
-    const cameraRig = document.querySelector("#cameraRig");
-    const aimLine = document.querySelector("#aimLine");
+<script>
+const ball = document.querySelector("#ball");
+const camera = document.querySelector("#camera");
+const cameraRig = document.querySelector("#cameraRig");
+const aimLine = document.querySelector("#aimLine");
 
-    let ballVel = {x:0, z:0};
+let ballVel = {x:0, z:0};
 
-    // Click-to-putt
-    window.addEventListener("click", e => {
-      const pos = ball.getAttribute("position");
+// Camera rotation control
+let rotateAngle = 0;
+let isDragging = false;
+let lastX = 0;
 
-      // Forward vector from actual camera
-      const camObj = camera.object3D;
-      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camObj.quaternion).normalize();
+window.addEventListener("mousedown", e => {
+  isDragging = true;
+  lastX = e.clientX;
+});
 
-      const power = 0.2;
-      ballVel.x = forward.x * power;
-      ballVel.z = forward.z * power;
+window.addEventListener("mouseup", e => isDragging = false);
+window.addEventListener("mousemove", e => {
+  if (!isDragging) return;
+  const dx = e.clientX - lastX;
+  rotateAngle += dx * 0.005; // rotation speed
+  lastX = e.clientX;
+});
 
-      // Temporary aim line
-      aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + forward.x*2} ${pos.y} ${pos.z + forward.z*2}; color: red`);
-      setTimeout(() => {
-        aimLine.setAttribute("line", "start: 0 0 0; end: 0 0 0; color: red");
-      }, 200);
-    });
+// Click-to-putt
+window.addEventListener("click", e => {
+  const pos = ball.getAttribute("position");
 
-    // Update ball manually
-    function updateBall() {
-      const pos = ball.getAttribute("position");
-      pos.x += ballVel.x;
-      pos.z += ballVel.z;
-      pos.y = 0.5;
-      ball.setAttribute("position", pos);
+  // Use rotateAngle for forward direction
+  const forward = {x: Math.sin(rotateAngle), z: -Math.cos(rotateAngle)};
+  const power = 0.2;
+  ballVel.x = forward.x * power;
+  ballVel.z = forward.z * power;
 
-      // Damping
-      ballVel.x *= 0.95;
-      ballVel.z *= 0.95;
-      if (Math.abs(ballVel.x) < 0.001) ballVel.x = 0;
-      if (Math.abs(ballVel.z) < 0.001) ballVel.z = 0;
+  // Temporary aim line
+  aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + forward.x*2} ${pos.y} ${pos.z + forward.z*2}; color: red`);
+  setTimeout(() => {
+    aimLine.setAttribute("line", "start: 0 0 0; end: 0 0 0; color: red");
+  }, 200);
+});
 
-      requestAnimationFrame(updateBall);
-    }
-    updateBall();
+// Update ball
+function updateBall() {
+  const pos = ball.getAttribute("position");
+  pos.x += ballVel.x;
+  pos.z += ballVel.z;
+  pos.y = 0.5;
+  ball.setAttribute("position", pos);
 
-    // Third-person follow-behind camera
-    function followBall() {
-      const pos = ball.getAttribute("position");
-      const camOffset = new THREE.Vector3(0, 3, 4);
+  // Damping
+  ballVel.x *= 0.95;
+  ballVel.z *= 0.95;
+  if (Math.abs(ballVel.x) < 0.001) ballVel.x = 0;
+  if (Math.abs(ballVel.z) < 0.001) ballVel.z = 0;
 
-      // If ball is moving, place camera behind it relative to movement
-      if (ballVel.x !== 0 || ballVel.z !== 0) {
-        const moveDir = new THREE.Vector3(ballVel.x, 0, ballVel.z).normalize();
-        camOffset.x = -moveDir.x * 4;
-        camOffset.z = -moveDir.z * 4;
-      } else {
-        // Default: behind negative Z
-        camOffset.x = 0;
-        camOffset.z = 4;
-      }
+  requestAnimationFrame(updateBall);
+}
+updateBall();
 
-      cameraRig.setAttribute("position", {
-        x: pos.x + camOffset.x,
-        y: pos.y + camOffset.y,
-        z: pos.z + camOffset.z
-      });
+// Camera follow behind ball
+function followBall() {
+  const pos = ball.getAttribute("position");
+  const camDistance = 6;
+  const camHeight = 3;
 
-      // Look at the ball
-      camera.object3D.lookAt(new THREE.Vector3(pos.x, pos.y + 0.5, pos.z));
+  // Compute behind vector from rotateAngle
+  const offsetX = Math.sin(rotateAngle) * -camDistance;
+  const offsetZ = Math.cos(rotateAngle) * camDistance;
 
-      requestAnimationFrame(followBall);
-    }
-    followBall();
-  </script>
+  cameraRig.setAttribute("position", {
+    x: pos.x + offsetX,
+    y: pos.y + camHeight,
+    z: pos.z + offsetZ
+  });
+
+  camera.object3D.lookAt(new THREE.Vector3(pos.x, pos.y + 0.5, pos.z));
+
+  requestAnimationFrame(followBall);
+}
+followBall();
+</script>
 </body>
 </html>
