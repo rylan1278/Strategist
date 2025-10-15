@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mini Golf Game</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/n5ro/aframe-physics-system@v4.0.1/dist/aframe-physics-system.min.js"></script>
   </head>
   <body>
     <a-scene physics="gravity: -9.8">
@@ -14,7 +15,7 @@
       <a-plane color="#228B22" rotation="-90 0 0" width="50" height="50" static-body></a-plane>
 
       <!-- Golf ball -->
-      <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff" dynamic-body></a-sphere>
+      <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff" dynamic-body="mass:1; linearDamping:0.2; angularDamping:0.4"></a-sphere>
 
       <!-- Hole -->
       <a-cylinder id="hole" position="0 0 -15" radius="0.7" height="0.1" color="#000000" static-body></a-cylinder>
@@ -53,16 +54,21 @@
         aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + dx} ${pos.y} ${pos.z + dz}; color: red`);
       });
 
-      // Mouse up → apply putt
+      // Mouse up → apply putt as force
       window.addEventListener("mouseup", e => {
         if (!isDragging) return;
         isDragging = false;
 
-        const dx = (startX - e.clientX) / 50;
-        const dz = (startZ - e.clientY) / 50;
-        ball.setAttribute("velocity", { x: dx, y: 0, z: dz });
+        const dx = (startX - e.clientX) / 10; // increase power scale
+        const dz = (startZ - e.clientY) / 10;
 
-        // Hide aim line after shot
+        // Apply impulse for rolling
+        ball.body.applyImpulse(
+          new CANNON.Vec3(dx, 0, dz),
+          ball.body.position
+        );
+
+        // Hide aim line
         aimLine.setAttribute("line", `start: 0 0 0; end: 0 0 0; color: red`);
       });
 
