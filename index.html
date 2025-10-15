@@ -4,28 +4,32 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mini Golf Game</title>
+
+    <!-- A-Frame 1.5.0 -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/n5ro/aframe-physics-system@v4.0.1/dist/aframe-physics-system.min.js"></script>
+    <!-- Updated physics system compatible with A-Frame 1.5.0 -->
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-physics-system@v5.0.0/dist/aframe-physics-system.min.js"></script>
   </head>
   <body>
-    <a-scene physics="gravity: -9.8">
+    <a-scene physics="gravity: -9.8; debug: false">
 
       <!-- Sky and ground -->
       <a-sky color="#87CEEB"></a-sky>
       <a-plane color="#228B22" rotation="-90 0 0" width="50" height="50" static-body></a-plane>
 
       <!-- Golf ball -->
-      <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff" dynamic-body="mass:1; linearDamping:0.3; angularDamping:0.4"></a-sphere>
+      <a-sphere id="ball" position="0 0.5 -5" radius="0.5" color="#ffffff" 
+                dynamic-body="mass:1; linearDamping:0.4; angularDamping:0.4"></a-sphere>
 
       <!-- Hole -->
       <a-cylinder id="hole" position="0 0 -15" radius="0.7" height="0.1" color="#000000" static-body></a-cylinder>
 
-      <!-- Camera rig (follows ball, angled down) -->
+      <!-- Camera rig -->
       <a-entity id="cameraRig" position="0 3 8" rotation="-30 0 0">
         <a-camera wasd-controls-enabled="false" look-controls-enabled="false"></a-camera>
       </a-entity>
 
-      <!-- Line for aiming -->
+      <!-- Aim line -->
       <a-entity id="aimLine" line="start: 0 0 0; end: 0 0 0; color: red"></a-entity>
 
     </a-scene>
@@ -38,7 +42,7 @@
       let isDragging = false;
       let startX, startZ;
 
-      // Wait for the physics body to load
+      // Wait until the physics body is ready
       ball.addEventListener('body-loaded', () => {
 
         // Mouse down → start aiming
@@ -57,18 +61,16 @@
           aimLine.setAttribute("line", `start: ${pos.x} ${pos.y} ${pos.z}; end: ${pos.x + dx} ${pos.y} ${pos.z + dz}; color: red`);
         });
 
-        // Mouse up → apply impulse
+        // Mouse up → apply putt as impulse
         window.addEventListener("mouseup", e => {
           if (!isDragging) return;
           isDragging = false;
 
-          const dx = (startX - e.clientX) / 10; // power scale
+          const dx = (startX - e.clientX) / 10; // scale for power
           const dz = (startZ - e.clientY) / 10;
 
-          ball.body.applyImpulse(
-            new CANNON.Vec3(dx, 0, dz),
-            ball.body.position
-          );
+          const body = ball.components['dynamic-body'].body;
+          body.applyImpulse(new CANNON.Vec3(dx, 0, dz), body.position);
 
           // Hide aim line
           aimLine.setAttribute("line", `start: 0 0 0; end: 0 0 0; color: red`);
@@ -76,7 +78,7 @@
 
       });
 
-      // Follow ball with camera
+      // Camera follows ball
       function followBall() {
         const pos = ball.getAttribute("position");
         cameraRig.setAttribute("position", {
