@@ -49,8 +49,8 @@ window.addEventListener("keyup", e => keys[e.code] = false);
 
 // ----- Ball aim controls (Arrow Left/Right) -----
 window.addEventListener("keydown", e => {
-  if (e.code === "ArrowLeft") aimAngle -= 0.05;
-  if (e.code === "ArrowRight") aimAngle += 0.05;
+  if (e.code === "q") aimAngle -= 0.05;
+  if (e.code === "e") aimAngle += 0.05;
 
   // Space bar shoots the ball
   if (e.code === "Space") {
