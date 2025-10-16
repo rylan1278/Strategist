@@ -76,7 +76,7 @@ window.addEventListener("keydown", e => {
 
   // Space bar shoots the ball
   if (e.code === "Space") {
-    const power = 2;
+    const power = .5;
     ballVel.x = Math.sin(aimAngle) * power;
     ballVel.z = -Math.cos(aimAngle) * power;
   }
