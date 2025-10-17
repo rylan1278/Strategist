@@ -46,7 +46,7 @@ const fairwayWidth = 5;
 const wallColliders = []; // Store ONLY collision data here
 
 // Helper to create a fairway segment and walls
-function createSegment(start, end, prevEnd, nextStart) {
+function createSegment(start, end, prevEnd, nextStart, segmentIndex) {
   const dx = end.x - start.x;
   const dz = end.z - start.z;
   const length = Math.sqrt(dx*dx + dz*dz);
@@ -78,6 +78,11 @@ function createSegment(start, end, prevEnd, nextStart) {
   const extendStart = prevEnd ? 0.3 : 0;
   const extendEnd = nextStart ? 0.3 : 0;
 
+  // Wall colors for identification - alternating colors
+  const wallColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ff8800', '#8800ff'];
+  const leftColor = wallColors[segmentIndex % wallColors.length];
+  const rightColor = wallColors[(segmentIndex + wallColors.length/2) % wallColors.length];
+
   // Left wall
   const leftX = midX + perpX * (fairwayWidth/2);
   const leftZ = midZ + perpZ * (fairwayWidth/2);
@@ -87,8 +92,17 @@ function createSegment(start, end, prevEnd, nextStart) {
   leftWall.setAttribute('height', 1);
   leftWall.setAttribute('depth', length + extendStart + extendEnd);
   leftWall.setAttribute('rotation', `0 ${angleDeg} 0`);
-  leftWall.setAttribute('color', '#5c4033');
+  leftWall.setAttribute('color', leftColor);
   scene.appendChild(leftWall);
+  
+  // Left wall label
+  const leftLabel = document.createElement('a-text');
+  leftLabel.setAttribute('value', `L${segmentIndex}`);
+  leftLabel.setAttribute('position', `${leftX} 1.2 ${leftZ}`);
+  leftLabel.setAttribute('align', 'center');
+  leftLabel.setAttribute('color', 'white');
+  leftLabel.setAttribute('scale', '2 2 2');
+  scene.appendChild(leftLabel);
 
   // Store left wall collision data as LINE SEGMENT with extension
   const leftX1 = leftX - dirX * (length/2 + extendStart);
@@ -102,11 +116,6 @@ function createSegment(start, end, prevEnd, nextStart) {
     x2: leftX2,
     z2: leftZ2
   });
-  
-  // DEBUG: Visualize wall collision line
-  const leftDebug = document.createElement('a-entity');
-  leftDebug.setAttribute('line', `start: ${leftX1} 0.6 ${leftZ1}; end: ${leftX2} 0.6 ${leftZ2}; color: yellow`);
-  scene.appendChild(leftDebug);
 
   // Right wall
   const rightX = midX - perpX * (fairwayWidth/2);
@@ -117,8 +126,17 @@ function createSegment(start, end, prevEnd, nextStart) {
   rightWall.setAttribute('height', 1);
   rightWall.setAttribute('depth', length + extendStart + extendEnd);
   rightWall.setAttribute('rotation', `0 ${angleDeg} 0`);
-  rightWall.setAttribute('color', '#5c4033');
+  rightWall.setAttribute('color', rightColor);
   scene.appendChild(rightWall);
+  
+  // Right wall label
+  const rightLabel = document.createElement('a-text');
+  rightLabel.setAttribute('value', `R${segmentIndex}`);
+  rightLabel.setAttribute('position', `${rightX} 1.2 ${rightZ}`);
+  rightLabel.setAttribute('align', 'center');
+  rightLabel.setAttribute('color', 'white');
+  rightLabel.setAttribute('scale', '2 2 2');
+  scene.appendChild(rightLabel);
 
   // Store right wall collision data as LINE SEGMENT with extension
   const rightX1 = rightX - dirX * (length/2 + extendStart);
@@ -132,18 +150,13 @@ function createSegment(start, end, prevEnd, nextStart) {
     x2: rightX2,
     z2: rightZ2
   });
-  
-  // DEBUG: Visualize wall collision line
-  const rightDebug = document.createElement('a-entity');
-  rightDebug.setAttribute('line', `start: ${rightX1} 0.6 ${rightZ1}; end: ${rightX2} 0.6 ${rightZ2}; color: cyan`);
-  scene.appendChild(rightDebug);
 }
 
 // Build the course
 for(let i=0; i<path.length-1; i++){
   const prevEnd = i > 0 ? path[i-1] : null;
   const nextStart = i < path.length-2 ? path[i+2] : null;
-  createSegment(path[i], path[i+1], prevEnd, nextStart);
+  createSegment(path[i], path[i+1], prevEnd, nextStart, i);
 }
 
 // ---- Obstacles ----
