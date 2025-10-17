@@ -13,28 +13,32 @@
   <a-sky color="#87CEEB"></a-sky>
   <a-plane color="#2d5016" rotation="-90 0 0" width="300" height="300"></a-plane>
   
-  <!-- Fairway -->
-  <a-box position="0 0.01 -50" width="8" height="0.02" depth="200" color="#3a7d44"></a-box>
+  <!-- Course sections (fairways) -->
+  <a-box position="0 0.01 -20" width="8" height="0.02" depth="40" color="#3a7d44"></a-box>
+  <a-box position="3 0.01 -60" width="8" height="0.02" depth="40" rotation="0 10 0" color="#3a7d44"></a-box>
+  <a-box position="-2 0.01 -100" width="8" height="0.02" depth="50" rotation="0 -15 0" color="#3a7d44"></a-box>
+  <a-box position="0 0.01 -150" width="8" height="0.02" depth="50" color="#3a7d44"></a-box>
 
-  <!-- Green -->
-  <a-cylinder position="0 0.02 -140" radius="3" height="0.03" color="#4a9d5a"></a-cylinder>
+  <!-- Green at the end -->
+  <a-cylinder position="0 0.02 -190" radius="3" height="0.03" color="#4a9d5a"></a-cylinder>
 
   <!-- Walls -->
   <a-box position="-4.1 0.5 -50" width="0.2" height="1" depth="200" color="#5c4033"></a-box>
   <a-box position="4.1 0.5 -50" width="0.2" height="1" depth="200" color="#5c4033"></a-box>
 
-  <!-- Ramp -->
-  <a-box position="0 0.2 -30" rotation="-20 0 0" width="2" height="0.1" depth="3" color="#654321"></a-box>
-
   <!-- Obstacles -->
-  <a-box position="0 0.2 -80" width="1.5" height="0.5" depth="3" color="#d62828"></a-box>
-  <a-box position="-2 0.2 -110" width="0.5" height="0.5" depth="3" color="#d62828"></a-box>
-  <a-box position="2 0.2 -130" width="0.5" height="0.5" depth="3" color="#d62828"></a-box>
+  <a-box position="0 0.2 -30" width="1.5" height="0.5" depth="3" color="#d62828"></a-box>
+  <a-box position="2 0.2 -45" width="1" height="0.5" depth="2" color="#d62828"></a-box>
+  <a-box position="-3 0.2 -70" width="1" height="0.5" depth="3" color="#d62828"></a-box>
+  <a-box position="1 0.2 -90" width="2" height="0.5" depth="2" color="#d62828"></a-box>
+  <a-box position="-1.5 0.2 -120" width="1" height="0.5" depth="3" color="#d62828"></a-box>
+  <a-box position="2 0.2 -140" width="1.5" height="0.5" depth="2" color="#d62828"></a-box>
+  <a-box position="0 0.2 -160" width="2" height="0.5" depth="2" color="#d62828"></a-box>
 
   <!-- Hole -->
-  <a-cylinder id="hole" position="0 0 -140" radius="0.3" height="0.1" color="#000000"></a-cylinder>
-  <a-cylinder position="0 0.8 -140" radius="0.03" height="1.6" color="#ffffff"></a-cylinder>
-  <a-box position="0 1.5 -140" width="0.5" height="0.3" depth="0.02" color="#ff0000"></a-box>
+  <a-cylinder id="hole" position="0 0 -190" radius="0.3" height="0.1" color="#000000"></a-cylinder>
+  <a-cylinder position="0 0.8 -190" radius="0.03" height="1.6" color="#ffffff"></a-cylinder>
+  <a-box position="0 1.5 -190" width="0.5" height="0.3" depth="0.02" color="#ff0000"></a-box>
 
   <!-- Ball -->
   <a-sphere id="ball" position="0 0.5 -5" radius="0.2" color="#ffffff"></a-sphere>
@@ -55,9 +59,8 @@ const cameraRig = document.querySelector("#cameraRig");
 const camera = document.querySelector("#camera");
 const aimArrow = document.querySelector("#aimArrow");
 
-let ballVel = {x:0, y:0, z:0};
+let ballVel = {x:0, z:0};
 let aimAngle = 0;
-const gravity = -0.01;
 const orbitHeight = 3;
 let orbitX = 0;
 let orbitZ = 6;
@@ -76,7 +79,6 @@ window.addEventListener("keydown", e => {
     const power = 0.5;
     ballVel.x = Math.sin(aimAngle) * power;
     ballVel.z = -Math.cos(aimAngle) * power;
-    ballVel.y = 0.1; // initial jump off ramp
   }
 });
 
@@ -98,28 +100,36 @@ function updateCamera() {
 }
 updateCamera();
 
-// Ball update with gravity
+// Ball update with wall collisions
 function updateBall() {
   const pos = ball.getAttribute("position");
   pos.x += ballVel.x;
   pos.z += ballVel.z;
-  pos.y += ballVel.y;
+  pos.y = 0.5;
+  
+  // Wall collisions
+  if (pos.x < -3.9) { pos.x = -3.9; ballVel.x *= -0.8; }
+  if (pos.x > 3.9) { pos.x = 3.9; ballVel.x *= -0.8; }
 
-  // Gravity
-  ballVel.y += gravity;
-
-  // Collision with ground
-  if (pos.y < 0.5) {
-    pos.y = 0.5;
-    ballVel.y = 0;
+  // Obstacle collisions
+  const obstacles = [
+    {x:0, z:-30, w:1.5, d:3},
+    {x:2, z:-45, w:1, d:2},
+    {x:-3, z:-70, w:1, d:3},
+    {x:1, z:-90, w:2, d:2},
+    {x:-1.5, z:-120, w:1, d:3},
+    {x:2, z:-140, w:1.5, d:2},
+    {x:0, z:-160, w:2, d:2}
+  ];
+  for (let o of obstacles) {
+    if (Math.abs(pos.x - o.x) < o.w/2 + 0.2 && Math.abs(pos.z - o.z) < o.d/2 + 0.2) {
+      ballVel.x *= -0.8;
+      ballVel.z *= -0.8;
+    }
   }
 
-  // Simple wall collision
-  if (pos.x < -3.9 || pos.x > 3.9) ballVel.x *= -0.8;
-
-  ballVel.x *= 0.98;
-  ballVel.z *= 0.98;
-
+  ballVel.x *= 0.95;
+  ballVel.z *= 0.95;
   if (Math.abs(ballVel.x) < 0.001) ballVel.x = 0;
   if (Math.abs(ballVel.z) < 0.001) ballVel.z = 0;
 
@@ -128,7 +138,7 @@ function updateBall() {
 }
 updateBall();
 
-// Aim arrow
+// Aim arrow update
 function updateAimArrow() {
   const pos = ball.getAttribute("position");
   const endX = pos.x + Math.sin(aimAngle) * 2;
