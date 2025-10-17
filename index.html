@@ -87,12 +87,22 @@ function createSegment(start, end) {
   scene.appendChild(leftWall);
 
   // Store left wall collision data as LINE SEGMENT
+  const leftX1 = leftX - dirX * length/2;
+  const leftZ1 = leftZ - dirZ * length/2;
+  const leftX2 = leftX + dirX * length/2;
+  const leftZ2 = leftZ + dirZ * length/2;
+  
   wallColliders.push({
-    x1: leftX - dirX * length/2,
-    z1: leftZ - dirZ * length/2,
-    x2: leftX + dirX * length/2,
-    z2: leftZ + dirZ * length/2
+    x1: leftX1,
+    z1: leftZ1,
+    x2: leftX2,
+    z2: leftZ2
   });
+  
+  // DEBUG: Visualize wall collision line
+  const leftDebug = document.createElement('a-entity');
+  leftDebug.setAttribute('line', `start: ${leftX1} 0.6 ${leftZ1}; end: ${leftX2} 0.6 ${leftZ2}; color: yellow`);
+  scene.appendChild(leftDebug);
 
   // Right wall
   const rightX = midX - perpX * (fairwayWidth/2);
@@ -107,12 +117,22 @@ function createSegment(start, end) {
   scene.appendChild(rightWall);
 
   // Store right wall collision data as LINE SEGMENT
+  const rightX1 = rightX - dirX * length/2;
+  const rightZ1 = rightZ - dirZ * length/2;
+  const rightX2 = rightX + dirX * length/2;
+  const rightZ2 = rightZ + dirZ * length/2;
+  
   wallColliders.push({
-    x1: rightX - dirX * length/2,
-    z1: rightZ - dirZ * length/2,
-    x2: rightX + dirX * length/2,
-    z2: rightZ + dirZ * length/2
+    x1: rightX1,
+    z1: rightZ1,
+    x2: rightX2,
+    z2: rightZ2
   });
+  
+  // DEBUG: Visualize wall collision line
+  const rightDebug = document.createElement('a-entity');
+  rightDebug.setAttribute('line', `start: ${rightX1} 0.6 ${rightZ1}; end: ${rightX2} 0.6 ${rightZ2}; color: cyan`);
+  scene.appendChild(rightDebug);
 }
 
 // Build the course
