@@ -74,9 +74,18 @@ function createSegment(start, end, prevEnd, nextStart, segmentIndex) {
   const perpX = -dirZ;
   const perpZ = dirX;
 
-  // Calculate wall extension at corners
-  const extendStart = prevEnd ? 0.3 : 0;
-  const extendEnd = nextStart ? 0.3 : 0;
+  // Custom extensions per wall segment
+  let extendStart = prevEnd ? 0.3 : 0;
+  let extendEnd = nextStart ? 0.3 : 0;
+  
+  // Custom adjustments
+  if(segmentIndex === 0) {
+    extendEnd = 0.1; // L0/R0 end shorter
+  }
+  if(segmentIndex === 1) {
+    extendStart = 0.1; // L1/R1 start shorter
+    extendEnd = 0.5; // L1 end longer to reach L2
+  }
 
   // Wall colors for identification - alternating colors
   const wallColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ff8800', '#8800ff'];
@@ -117,14 +126,22 @@ function createSegment(start, end, prevEnd, nextStart, segmentIndex) {
     z2: leftZ2
   });
 
-  // Right wall
+  // Right wall - custom adjustments
+  let rightExtendStart = extendStart;
+  let rightExtendEnd = extendEnd;
+  
+  if(segmentIndex === 1) {
+    rightExtendStart = 0.5; // R1 start longer to reach R0
+    rightExtendEnd = 0.1; // R1 end shorter to not overlap onto course
+  }
+
   const rightX = midX - perpX * (fairwayWidth/2);
   const rightZ = midZ - perpZ * (fairwayWidth/2);
   const rightWall = document.createElement('a-box');
   rightWall.setAttribute('position', `${rightX} 0.5 ${rightZ}`);
   rightWall.setAttribute('width', 0.2);
   rightWall.setAttribute('height', 1);
-  rightWall.setAttribute('depth', length + extendStart + extendEnd);
+  rightWall.setAttribute('depth', length + rightExtendStart + rightExtendEnd);
   rightWall.setAttribute('rotation', `0 ${angleDeg} 0`);
   rightWall.setAttribute('color', rightColor);
   scene.appendChild(rightWall);
@@ -139,10 +156,10 @@ function createSegment(start, end, prevEnd, nextStart, segmentIndex) {
   scene.appendChild(rightLabel);
 
   // Store right wall collision data as LINE SEGMENT with extension
-  const rightX1 = rightX - dirX * (length/2 + extendStart);
-  const rightZ1 = rightZ - dirZ * (length/2 + extendStart);
-  const rightX2 = rightX + dirX * (length/2 + extendEnd);
-  const rightZ2 = rightZ + dirZ * (length/2 + extendEnd);
+  const rightX1 = rightX - dirX * (length/2 + rightExtendStart);
+  const rightZ1 = rightZ - dirZ * (length/2 + rightExtendStart);
+  const rightX2 = rightX + dirX * (length/2 + rightExtendEnd);
+  const rightZ2 = rightZ + dirZ * (length/2 + rightExtendEnd);
   
   wallColliders.push({
     x1: rightX1,
