@@ -42,11 +42,11 @@ const path = [
   {x:8, z:-160}
 ];
 
-const fairwayWidth = 4;
+const fairwayWidth = 5;
 const wallColliders = []; // Store ONLY collision data here
 
 // Helper to create a fairway segment and walls
-function createSegment(start, end) {
+function createSegment(start, end, prevEnd, nextStart) {
   const dx = end.x - start.x;
   const dz = end.z - start.z;
   const length = Math.sqrt(dx*dx + dz*dz);
@@ -74,6 +74,10 @@ function createSegment(start, end) {
   const perpX = -dirZ;
   const perpZ = dirX;
 
+  // Calculate wall extension at corners
+  const extendStart = prevEnd ? 0.3 : 0;
+  const extendEnd = nextStart ? 0.3 : 0;
+
   // Left wall
   const leftX = midX + perpX * (fairwayWidth/2);
   const leftZ = midZ + perpZ * (fairwayWidth/2);
@@ -81,16 +85,16 @@ function createSegment(start, end) {
   leftWall.setAttribute('position', `${leftX} 0.5 ${leftZ}`);
   leftWall.setAttribute('width', 0.2);
   leftWall.setAttribute('height', 1);
-  leftWall.setAttribute('depth', length);
+  leftWall.setAttribute('depth', length + extendStart + extendEnd);
   leftWall.setAttribute('rotation', `0 ${angleDeg} 0`);
   leftWall.setAttribute('color', '#5c4033');
   scene.appendChild(leftWall);
 
-  // Store left wall collision data as LINE SEGMENT
-  const leftX1 = leftX - dirX * length/2;
-  const leftZ1 = leftZ - dirZ * length/2;
-  const leftX2 = leftX + dirX * length/2;
-  const leftZ2 = leftZ + dirZ * length/2;
+  // Store left wall collision data as LINE SEGMENT with extension
+  const leftX1 = leftX - dirX * (length/2 + extendStart);
+  const leftZ1 = leftZ - dirZ * (length/2 + extendStart);
+  const leftX2 = leftX + dirX * (length/2 + extendEnd);
+  const leftZ2 = leftZ + dirZ * (length/2 + extendEnd);
   
   wallColliders.push({
     x1: leftX1,
@@ -111,16 +115,16 @@ function createSegment(start, end) {
   rightWall.setAttribute('position', `${rightX} 0.5 ${rightZ}`);
   rightWall.setAttribute('width', 0.2);
   rightWall.setAttribute('height', 1);
-  rightWall.setAttribute('depth', length);
+  rightWall.setAttribute('depth', length + extendStart + extendEnd);
   rightWall.setAttribute('rotation', `0 ${angleDeg} 0`);
   rightWall.setAttribute('color', '#5c4033');
   scene.appendChild(rightWall);
 
-  // Store right wall collision data as LINE SEGMENT
-  const rightX1 = rightX - dirX * length/2;
-  const rightZ1 = rightZ - dirZ * length/2;
-  const rightX2 = rightX + dirX * length/2;
-  const rightZ2 = rightZ + dirZ * length/2;
+  // Store right wall collision data as LINE SEGMENT with extension
+  const rightX1 = rightX - dirX * (length/2 + extendStart);
+  const rightZ1 = rightZ - dirZ * (length/2 + extendStart);
+  const rightX2 = rightX + dirX * (length/2 + extendEnd);
+  const rightZ2 = rightZ + dirZ * (length/2 + extendEnd);
   
   wallColliders.push({
     x1: rightX1,
@@ -136,8 +140,10 @@ function createSegment(start, end) {
 }
 
 // Build the course
-for(let i=0;i<path.length-1;i++){
-  createSegment(path[i], path[i+1]);
+for(let i=0; i<path.length-1; i++){
+  const prevEnd = i > 0 ? path[i-1] : null;
+  const nextStart = i < path.length-2 ? path[i+2] : null;
+  createSegment(path[i], path[i+1], prevEnd, nextStart);
 }
 
 // ---- Obstacles ----
