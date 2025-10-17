@@ -1,37 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mini Golf Game</title>
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 </head>
 <body>
 <a-scene>
-
   <!-- Sky and ground -->
   <a-sky color="#87CEEB"></a-sky>
   <a-plane color="#2d5016" rotation="-90 0 0" width="300" height="300"></a-plane>
   
-  <!-- Fairway (longer) -->
+  <!-- Fairway -->
   <a-box position="0 0.01 -50" width="8" height="0.02" depth="200" color="#3a7d44"></a-box>
 
-  <!-- Green around hole -->
+  <!-- Green -->
   <a-cylinder position="0 0.02 -140" radius="3" height="0.03" color="#4a9d5a"></a-cylinder>
 
   <!-- Walls -->
-  <a-box id="leftWall" position="-4.1 0.5 -50" width="0.2" height="1" depth="200" color="#5c4033"></a-box>
-  <a-box id="rightWall" position="4.1 0.5 -50" width="0.2" height="1" depth="200" color="#5c4033"></a-box>
+  <a-box position="-4.1 0.5 -50" width="0.2" height="1" depth="200" color="#5c4033"></a-box>
+  <a-box position="4.1 0.5 -50" width="0.2" height="1" depth="200" color="#5c4033"></a-box>
 
-  <!-- Ramp (fixed direction) -->
+  <!-- Ramp (facing forward) -->
   <a-box position="0 0.2 -30" rotation="-15 0 0" width="2" height="0.1" depth="3" color="#654321"></a-box>
 
   <!-- Obstacles -->
-  <a-box id="obstacle1" position="0 0.2 -80" width="1.5" height="0.5" depth="3" color="#d62828"></a-box>
-  <a-box id="obstacle2" position="-2 0.2 -110" width="0.5" height="0.5" depth="3" color="#d62828"></a-box>
-  <a-box id="obstacle3" position="2 0.2 -130" width="0.5" height="0.5" depth="3" color="#d62828"></a-box>
+  <a-box position="0 0.2 -80" width="1.5" height="0.5" depth="3" color="#d62828"></a-box>
+  <a-box position="-2 0.2 -110" width="0.5" height="0.5" depth="3" color="#d62828"></a-box>
+  <a-box position="2 0.2 -130" width="0.5" height="0.5" depth="3" color="#d62828"></a-box>
 
-  <!-- Hole with flag -->
+  <!-- Hole and flag -->
   <a-cylinder id="hole" position="0 0 -140" radius="0.3" height="0.1" color="#000000"></a-cylinder>
   <a-cylinder position="0 0.8 -140" radius="0.03" height="1.6" color="#ffffff"></a-cylinder>
   <a-box position="0 1.5 -140" width="0.5" height="0.3" depth="0.02" color="#ff0000"></a-box>
@@ -39,14 +38,13 @@
   <!-- Ball -->
   <a-sphere id="ball" position="0 0.5 -5" radius="0.2" color="#ffffff"></a-sphere>
 
-  <!-- Camera rig -->
-  <a-entity id="cameraRig" position="0 3 6">
-    <a-camera id="camera"></a-camera>
+  <!-- Camera -->
+  <a-entity id="cameraRig" position="0 2 6">
+    <a-camera id="camera" look-controls wasd-controls="acceleration: 20; fly: false;"></a-camera>
   </a-entity>
 
   <!-- Aim arrow -->
   <a-entity id="aimArrow" line="start: 0 0.5 0; end: 0 0.5 -2; color: red"></a-entity>
-
 </a-scene>
 
 <script>
@@ -55,18 +53,10 @@ const cameraRig = document.querySelector("#cameraRig");
 const camera = document.querySelector("#camera");
 const aimArrow = document.querySelector("#aimArrow");
 
-let ballVel = {x:0, z:0};
+let ballVel = {x: 0, z: 0};
 let aimAngle = 0;
-const orbitHeight = 3;
-let orbitX = 0;
-let orbitZ = 6;
 
-const camSpeed = 0.2;
-const keys = {};
-window.addEventListener("keydown", e => keys[e.code] = true);
-window.addEventListener("keyup", e => keys[e.code] = false);
-
-// ---- Aim and shoot (Q/E + Space) ----
+// Aim and shoot (Q/E + Space)
 window.addEventListener("keydown", e => {
   if (e.code === "KeyQ") aimAngle -= 0.05;
   if (e.code === "KeyE") aimAngle += 0.05;
@@ -77,11 +67,7 @@ window.addEventListener("keydown", e => {
   }
 });
 
-// ---- Collision data ----
-const walls = [
-  {x: -3.9, z: -50, w: 0.2, d: 200}, // left wall
-  {x: 3.9, z: -50, w: 0.2, d: 200},  // right wall
-];
+// Obstacles for collision
 const obstacles = [
   {x: 0, z: -80, w: 1.5, d: 3},
   {x: -2, z: -110, w: 0.5, d: 3},
@@ -89,40 +75,31 @@ const obstacles = [
 ];
 
 function checkCollision(pos) {
-  // Walls bounce
+  // Walls
   if (pos.x < -3.9) { pos.x = -3.9; ballVel.x *= -0.8; }
   if (pos.x > 3.9) { pos.x = 3.9; ballVel.x *= -0.8; }
 
-  // Obstacles bounce
+  // Obstacles
   for (let o of obstacles) {
     if (Math.abs(pos.x - o.x) < o.w/2 + 0.2 && Math.abs(pos.z - o.z) < o.d/2 + 0.2) {
-      // Simple bounce opposite direction
       ballVel.x *= -0.8;
       ballVel.z *= -0.8;
     }
   }
 }
 
-// ---- Camera movement ----
-function updateCamera() {
-  const pos = ball.getAttribute("position");
-  if (keys['KeyW']) orbitZ -= camSpeed;
-  if (keys['KeyS']) orbitZ += camSpeed;
-  if (keys['KeyA']) orbitX -= camSpeed;
-  if (keys['KeyD']) orbitX += camSpeed;
-
-  cameraRig.setAttribute("position", {
-    x: pos.x + orbitX,
-    y: pos.y + orbitHeight,
-    z: pos.z + orbitZ
-  });
-  camera.object3D.lookAt(new THREE.Vector3(pos.x, pos.y + 0.5, pos.z));
-
-  requestAnimationFrame(updateCamera);
+// Keep camera height fixed (no flying)
+function clampCameraHeight() {
+  const pos = cameraRig.getAttribute("position");
+  if (pos.y !== 2) {
+    pos.y = 2;
+    cameraRig.setAttribute("position", pos);
+  }
+  requestAnimationFrame(clampCameraHeight);
 }
-updateCamera();
+clampCameraHeight();
 
-// ---- Ball movement ----
+// Ball physics
 function updateBall() {
   const pos = ball.getAttribute("position");
   pos.x += ballVel.x;
@@ -140,7 +117,7 @@ function updateBall() {
 }
 updateBall();
 
-// ---- Aim arrow ----
+// Update aim arrow
 function updateAimArrow() {
   const pos = ball.getAttribute("position");
   const endX = pos.x + Math.sin(aimAngle) * 2;
