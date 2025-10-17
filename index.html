@@ -67,8 +67,8 @@ function createSegment(start, end) {
   scene.appendChild(fairway);
 
   // Direction vector along the wall
-  const dirX = Math.sin(angle);
-  const dirZ = -Math.cos(angle);
+  const dirX = dx / length;
+  const dirZ = dz / length;
   
   // Perpendicular vector (for wall offset)
   const perpX = -dirZ;
