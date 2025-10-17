@@ -24,8 +24,6 @@
   <!-- Aim arrow -->
   <a-entity id="aimArrow" line="start: 0 0.5 0; end: 0 0.5 -2; color: red"></a-entity>
 
-  <!-- Course (dynamically generated via JS) -->
-
 </a-scene>
 
 <script>
@@ -52,11 +50,7 @@ function createSegment(start, end) {
 
   // Fairway
   const fairway = document.createElement('a-box');
-  fairway.setAttribute('position', {
-    x: (start.x + end.x)/2,
-    y: 0.01,
-    z: (start.z + end.z)/2
-  });
+  fairway.setAttribute('position', {x:(start.x+end.x)/2, y:0.01, z:(start.z+end.z)/2});
   fairway.setAttribute('width', fairwayWidth);
   fairway.setAttribute('height', 0.02);
   fairway.setAttribute('depth', length);
@@ -69,11 +63,7 @@ function createSegment(start, end) {
   const offsetZ = (fairwayWidth/2) * Math.sin(angle * Math.PI/180);
 
   const leftWall = document.createElement('a-box');
-  leftWall.setAttribute('position', {
-    x: (start.x + end.x)/2 - offsetX,
-    y:0.5,
-    z: (start.z + end.z)/2 + offsetZ
-  });
+  leftWall.setAttribute('position', {x:(start.x+end.x)/2 - offsetX, y:0.5, z:(start.z+end.z)/2 + offsetZ});
   leftWall.setAttribute('width', 0.2);
   leftWall.setAttribute('height', 1);
   leftWall.setAttribute('depth', length);
@@ -82,11 +72,7 @@ function createSegment(start, end) {
   scene.appendChild(leftWall);
 
   const rightWall = document.createElement('a-box');
-  rightWall.setAttribute('position', {
-    x: (start.x + end.x)/2 + offsetX,
-    y:0.5,
-    z: (start.z + end.z)/2 - offsetZ
-  });
+  rightWall.setAttribute('position', {x:(start.x+end.x)/2 + offsetX, y:0.5, z:(start.z+end.z)/2 - offsetZ});
   rightWall.setAttribute('width', 0.2);
   rightWall.setAttribute('height', 1);
   rightWall.setAttribute('depth', length);
@@ -94,7 +80,7 @@ function createSegment(start, end) {
   rightWall.setAttribute('color', '#5c4033');
   scene.appendChild(rightWall);
 
-  return {start, end, angle, length, leftWall, rightWall};
+  return {start,end,angle,length,leftWall,rightWall};
 }
 
 // Build the course
@@ -103,7 +89,7 @@ for(let i=0;i<path.length-1;i++){
   segments.push(createSegment(path[i], path[i+1]));
 }
 
-// ---- Add some obstacles along segments ----
+// ---- Obstacles ----
 const obstacles = [];
 function createObstacle(x,z,w=1,d=2){
   const ob = document.createElement('a-box');
@@ -120,20 +106,19 @@ createObstacle(10,-50,1,2);
 createObstacle(-5,-90,1,2);
 createObstacle(5,-130,1,2);
 
-// ---- Hole at end ----
+// ---- Hole ----
 const hole = document.createElement('a-cylinder');
-hole.setAttribute('id','hole');
 hole.setAttribute('position',{x:path[path.length-1].x,y:0,z:path[path.length-1].z});
 hole.setAttribute('radius',0.3);
 hole.setAttribute('height',0.1);
-hole.setAttribute('color','#000000');
+hole.setAttribute('color','#000');
 scene.appendChild(hole);
 
 const holeFlagPole = document.createElement('a-cylinder');
 holeFlagPole.setAttribute('position',{x:path[path.length-1].x,y:0.8,z:path[path.length-1].z});
 holeFlagPole.setAttribute('radius',0.03);
 holeFlagPole.setAttribute('height',1.6);
-holeFlagPole.setAttribute('color','#ffffff');
+holeFlagPole.setAttribute('color','#fff');
 scene.appendChild(holeFlagPole);
 
 const holeFlag = document.createElement('a-box');
@@ -141,23 +126,23 @@ holeFlag.setAttribute('position',{x:path[path.length-1].x,y:1.5,z:path[path.leng
 holeFlag.setAttribute('width',0.5);
 holeFlag.setAttribute('height',0.3);
 holeFlag.setAttribute('depth',0.02);
-holeFlag.setAttribute('color','#ff0000');
+holeFlag.setAttribute('color','#f00');
 scene.appendChild(holeFlag);
 
-// ---- Ball movement ----
+// ---- Ball physics ----
 const ballEl = document.querySelector('#ball');
-let ballVel={x:0,z:0};
-let aimAngle=0;
+let ballVel = {x:0,z:0};
+let aimAngle = 0;
 
-// WASD camera
+// Camera WASD
 const cameraRig = document.querySelector('#cameraRig');
 const camera = document.querySelector('#camera');
 let orbitX=0,orbitZ=6,orbitHeight=3;
-const keys = {};
+const keys={};
 window.addEventListener('keydown', e=>keys[e.code]=true);
 window.addEventListener('keyup', e=>keys[e.code]=false);
 
-// Q/E aim, space shoot
+// Q/E aim, Space putt
 window.addEventListener('keydown', e=>{
   if(e.code==='KeyQ') aimAngle-=0.05;
   if(e.code==='KeyE') aimAngle+=0.05;
@@ -182,39 +167,65 @@ function updateCamera(){
 }
 updateCamera();
 
-// Ball physics
-function updateBall(){
-  const pos=ballEl.getAttribute('position');
-  pos.x+=ballVel.x;
-  pos.z+=ballVel.z;
-  pos.y=0.5;
+// ---- Vector helper ----
+function reflectVelocity(vel, normal){
+  const dot = vel.x*normal.x + vel.z*normal.z;
+  return {
+    x: vel.x - 2*dot*normal.x,
+    z: vel.z - 2*dot*normal.z
+  };
+}
 
-  // Wall collisions
+// Ball movement with proper bouncing
+function updateBall(){
+  const pos = ballEl.getAttribute('position');
+  pos.x += ballVel.x;
+  pos.z += ballVel.z;
+  pos.y = 0.5;
+
+  const damping = 0.8;
+
+  // Check walls
   for(let seg of segments){
-    const walls=[seg.leftWall,seg.rightWall];
+    const walls = [seg.leftWall, seg.rightWall];
     for(let w of walls){
-      const wPos=w.getAttribute('position');
-      const dx=Math.abs(pos.x-wPos.x);
-      const dz=Math.abs(pos.z-wPos.z);
-      const halfW=w.getAttribute('width')/2+0.2;
-      const halfD=w.getAttribute('depth')/2+0.2;
-      if(dx<halfW && dz<halfD){
-        ballVel.x*=-0.8;
-        ballVel.z*=-0.8;
+      const wPos = w.getAttribute('position');
+      const wRot = w.getAttribute('rotation').y * Math.PI/180;
+      const cos = Math.cos(wRot);
+      const sin = Math.sin(wRot);
+      const halfW = w.getAttribute('width')/2 + 0.2;
+      const halfD = w.getAttribute('depth')/2 + 0.2;
+
+      // Transform ball pos to wall local space
+      const localX = cos*(pos.x - wPos.x) + sin*(pos.z - wPos.z);
+      const localZ = -sin*(pos.x - wPos.x) + cos*(pos.z - wPos.z);
+
+      if(Math.abs(localX)<halfW && Math.abs(localZ)<halfD){
+        // Determine normal (approx axis-aligned)
+        const normal = Math.abs(localX) > Math.abs(localZ) ? {x: Math.sign(localX), z:0} : {x:0,z:Math.sign(localZ)};
+        const newVel = reflectVelocity(ballVel, normal);
+        ballVel.x = newVel.x*damping;
+        ballVel.z = newVel.z*damping;
       }
     }
   }
 
-  // Obstacles
+  // Check obstacles
   for(let o of obstacles){
     if(Math.abs(pos.x-o.x)<o.w/2+0.2 && Math.abs(pos.z-o.z)<o.d/2+0.2){
-      ballVel.x*=-0.8;
-      ballVel.z*=-0.8;
+      // Determine normal based on nearest axis
+      const dx = pos.x - o.x;
+      const dz = pos.z - o.z;
+      const normal = Math.abs(dx) > Math.abs(dz) ? {x: Math.sign(dx), z:0} : {x:0,z:Math.sign(dz)};
+      const newVel = reflectVelocity(ballVel, normal);
+      ballVel.x = newVel.x*damping;
+      ballVel.z = newVel.z*damping;
     }
   }
 
-  ballVel.x*=0.95;
-  ballVel.z*=0.95;
+  // Friction
+  ballVel.x *= 0.95;
+  ballVel.z *= 0.95;
   if(Math.abs(ballVel.x)<0.001) ballVel.x=0;
   if(Math.abs(ballVel.z)<0.001) ballVel.z=0;
 
@@ -226,9 +237,9 @@ updateBall();
 // Aim arrow
 const aimArrow = document.querySelector('#aimArrow');
 function updateAimArrow(){
-  const pos=ballEl.getAttribute('position');
-  const endX=pos.x+Math.sin(aimAngle)*2;
-  const endZ=pos.z-Math.cos(aimAngle)*2;
+  const pos = ballEl.getAttribute('position');
+  const endX = pos.x + Math.sin(aimAngle)*2;
+  const endZ = pos.z - Math.cos(aimAngle)*2;
   aimArrow.setAttribute('line',`start: ${pos.x} 0.5 ${pos.z}; end: ${endX} 0.5 ${endZ}; color: red`);
   requestAnimationFrame(updateAimArrow);
 }
