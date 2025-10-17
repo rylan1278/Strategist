@@ -202,52 +202,104 @@ function reflectVelocity(vel, normal){
 // Ball movement with FIXED bouncing physics
 function updateBall(){
   const pos = ballEl.getAttribute('position');
+  
+  // Store old position for collision response
+  const oldX = pos.x;
+  const oldZ = pos.z;
+  
   pos.x += ballVel.x;
   pos.z += ballVel.z;
   pos.y = 0.5;
 
   const damping = 0.75;
+  const ballRadius = 0.2;
+  let collided = false;
 
-  // Check walls - PROPERLY NOW
+  // Check walls - Use line segment collision
   for(let seg of segments){
     const walls = [seg.leftWall, seg.rightWall];
     for(let wall of walls){
-      const cos = Math.cos(seg.angle);
-      const sin = Math.sin(seg.angle);
-      const halfW = 0.2/2 + 0.2;
-      const halfD = seg.length/2 + 0.2;
-
-      // Transform ball pos to wall local space
-      const localX = cos*(pos.x - wall.x) + sin*(pos.z - wall.z);
-      const localZ = -sin*(pos.x - wall.x) + cos*(pos.z - wall.z);
-
-      if(Math.abs(localX)<halfW && Math.abs(localZ)<halfD){
-        // Use the pre-calculated normal from wall data
-        const normal = {x: wall.normalX, z: wall.normalZ};
-        const newVel = reflectVelocity(ballVel, normal);
-        ballVel.x = newVel.x*damping;
-        ballVel.z = newVel.z*damping;
+      // Get wall endpoints along its length
+      const angleRad = seg.angle;
+      const halfLen = seg.length / 2;
+      
+      const dirX = Math.sin(angleRad);
+      const dirZ = -Math.cos(angleRad);
+      
+      const x1 = wall.x - dirX * halfLen;
+      const z1 = wall.z - dirZ * halfLen;
+      const x2 = wall.x + dirX * halfLen;
+      const z2 = wall.z + dirZ * halfLen;
+      
+      // Point to line segment distance
+      const dx = x2 - x1;
+      const dz = z2 - z1;
+      const lenSq = dx*dx + dz*dz;
+      
+      let t = ((pos.x - x1) * dx + (pos.z - z1) * dz) / lenSq;
+      t = Math.max(0, Math.min(1, t));
+      
+      const closestX = x1 + t * dx;
+      const closestZ = z1 + t * dz;
+      
+      const distX = pos.x - closestX;
+      const distZ = pos.z - closestZ;
+      const dist = Math.sqrt(distX*distX + distZ*distZ);
+      
+      if(dist < ballRadius + 0.1 && !collided){
+        collided = true;
+        // Normalize distance vector for reflection
+        const nx = distX / dist;
+        const nz = distZ / dist;
         
-        // Push ball away from wall to prevent sticking
-        pos.x += wall.normalX * 0.15;
-        pos.z += wall.normalZ * 0.15;
+        const dot = ballVel.x * nx + ballVel.z * nz;
+        if(dot < 0){
+          ballVel.x -= 2 * dot * nx;
+          ballVel.z -= 2 * dot * nz;
+          ballVel.x *= damping;
+          ballVel.z *= damping;
+          
+          // Push ball out
+          const overlap = (ballRadius + 0.1) - dist;
+          pos.x += nx * overlap;
+          pos.z += nz * overlap;
+        }
       }
     }
   }
 
   // Check obstacles
   for(let o of obstacles){
-    if(Math.abs(pos.x-o.x)<o.w/2+0.2 && Math.abs(pos.z-o.z)<o.d/2+0.2){
-      const dx = pos.x - o.x;
-      const dz = pos.z - o.z;
-      const normal = Math.abs(dx) > Math.abs(dz) ? {x: Math.sign(dx), z:0} : {x:0,z:Math.sign(dz)};
-      const newVel = reflectVelocity(ballVel, normal);
-      ballVel.x = newVel.x*damping;
-      ballVel.z = newVel.z*damping;
+    const dx = pos.x - o.x;
+    const dz = pos.z - o.z;
+    
+    // Clamp to box edges
+    const clampedX = Math.max(-o.w/2, Math.min(o.w/2, dx));
+    const clampedZ = Math.max(-o.d/2, Math.min(o.d/2, dz));
+    
+    const closestX = o.x + clampedX;
+    const closestZ = o.z + clampedZ;
+    
+    const distX = pos.x - closestX;
+    const distZ = pos.z - closestZ;
+    const dist = Math.sqrt(distX*distX + distZ*distZ);
+    
+    if(dist < ballRadius && !collided){
+      collided = true;
+      const nx = distX / dist;
+      const nz = distZ / dist;
       
-      // Push ball away from obstacle
-      pos.x += normal.x * 0.15;
-      pos.z += normal.z * 0.15;
+      const dot = ballVel.x * nx + ballVel.z * nz;
+      if(dot < 0){
+        ballVel.x -= 2 * dot * nx;
+        ballVel.z -= 2 * dot * nz;
+        ballVel.x *= damping;
+        ballVel.z *= damping;
+        
+        const overlap = ballRadius - dist;
+        pos.x += nx * overlap;
+        pos.z += nz * overlap;
+      }
     }
   }
 
