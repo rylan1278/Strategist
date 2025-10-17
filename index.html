@@ -88,10 +88,10 @@ function createSegment(start, end, prevEnd, nextStart, segmentIndex) {
   }
   if(segmentIndex === 2) {
     extendStart = 0.5; // L2 start to connect to L1
-    extendEnd = 0.1; // L2 end much shorter (was sticking out)
+    extendEnd = -2.0; // L2 end WAY shorter (was sticking out massively)
   }
   if(segmentIndex === 3) {
-    extendStart = 0.1; // L3 start shorter
+    extendStart = -2.0; // L3 start much shorter
     extendEnd = 0.3; // L3 end normal
   }
 
@@ -144,10 +144,10 @@ function createSegment(start, end, prevEnd, nextStart, segmentIndex) {
   }
   if(segmentIndex === 2) {
     rightExtendStart = 0.1; // R2 start shorter
-    rightExtendEnd = 0.6; // R2 end much longer to reach R3
+    rightExtendEnd = 2.5; // R2 end MUCH longer to reach R3 (big gap)
   }
   if(segmentIndex === 3) {
-    rightExtendStart = 0.6; // R3 start longer to meet R2
+    rightExtendStart = 2.5; // R3 start MUCH longer to meet R2
     rightExtendEnd = 0.3; // R3 end normal
   }
 
