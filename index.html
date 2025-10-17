@@ -86,6 +86,14 @@ function createSegment(start, end, prevEnd, nextStart, segmentIndex) {
     extendStart = 0.1; // L1/R1 start shorter
     extendEnd = 0.5; // L1 end longer to reach L2
   }
+  if(segmentIndex === 2) {
+    extendStart = 0.5; // L2 start to connect to L1
+    extendEnd = 0.1; // L2 end much shorter (was sticking out)
+  }
+  if(segmentIndex === 3) {
+    extendStart = 0.1; // L3 start shorter
+    extendEnd = 0.3; // L3 end normal
+  }
 
   // Wall colors for identification - alternating colors
   const wallColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ff8800', '#8800ff'];
@@ -133,6 +141,14 @@ function createSegment(start, end, prevEnd, nextStart, segmentIndex) {
   if(segmentIndex === 1) {
     rightExtendStart = 0.5; // R1 start longer to reach R0
     rightExtendEnd = 0.1; // R1 end shorter to not overlap onto course
+  }
+  if(segmentIndex === 2) {
+    rightExtendStart = 0.1; // R2 start shorter
+    rightExtendEnd = 0.6; // R2 end much longer to reach R3
+  }
+  if(segmentIndex === 3) {
+    rightExtendStart = 0.6; // R3 start longer to meet R2
+    rightExtendEnd = 0.3; // R3 end normal
   }
 
   const rightX = midX - perpX * (fairwayWidth/2);
