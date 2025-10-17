@@ -29,91 +29,102 @@
 <script>
 const scene = document.querySelector('a-scene');
 
-// ---- Define the path as points - MORE CREATIVE LAYOUT ----
+// ---- Define the path as points ----
 const path = [
   {x:0, z:0},
-  {x:0, z:-20},      // straight
-  {x:15, z:-40},     // diagonal right
-  {x:5, z:-60},      // sharp left
-  {x:5, z:-80},      // straight narrow
-  {x:-10, z:-95},    // hard left turn
-  {x:10, z:-115},    // S-curve right
-  {x:8, z:-140},     // slight left
-  {x:8, z:-160}      // final straight to hole
+  {x:0, z:-20},
+  {x:15, z:-40},
+  {x:5, z:-60},
+  {x:5, z:-80},
+  {x:-10, z:-95},
+  {x:10, z:-115},
+  {x:8, z:-140},
+  {x:8, z:-160}
 ];
 
 const fairwayWidth = 4;
+const wallColliders = []; // Store ONLY collision data here
 
 // Helper to create a fairway segment and walls
 function createSegment(start, end) {
   const dx = end.x - start.x;
   const dz = end.z - start.z;
   const length = Math.sqrt(dx*dx + dz*dz);
-  const angle = Math.atan2(dx, dz) * (180/Math.PI);
+  const angle = Math.atan2(dx, dz);
+  const angleDeg = angle * (180/Math.PI);
 
-  // Fairway
-  const fairway = document.createElement('a-box');
-  fairway.setAttribute('position', {x:(start.x+end.x)/2, y:0.01, z:(start.z+end.z)/2});
-  fairway.setAttribute('width', fairwayWidth);
-  fairway.setAttribute('height', 0.02);
-  fairway.setAttribute('depth', length);
-  fairway.setAttribute('rotation', `0 ${angle} 0`);
-  fairway.setAttribute('color', '#3a7d44');
-  scene.appendChild(fairway);
-
-  // Calculate perpendicular direction for wall placement
-  const angleRad = angle * Math.PI / 180;
-  const perpX = -Math.sin(angleRad);
-  const perpZ = Math.cos(angleRad);
-
-  // Walls - properly positioned perpendicular to the segment
   const midX = (start.x + end.x) / 2;
   const midZ = (start.z + end.z) / 2;
 
+  // Fairway
+  const fairway = document.createElement('a-box');
+  fairway.setAttribute('position', `${midX} 0.01 ${midZ}`);
+  fairway.setAttribute('width', fairwayWidth);
+  fairway.setAttribute('height', 0.02);
+  fairway.setAttribute('depth', length);
+  fairway.setAttribute('rotation', `0 ${angleDeg} 0`);
+  fairway.setAttribute('color', '#3a7d44');
+  scene.appendChild(fairway);
+
+  // Direction vector along the wall
+  const dirX = Math.sin(angle);
+  const dirZ = -Math.cos(angle);
+  
+  // Perpendicular vector (for wall offset)
+  const perpX = -dirZ;
+  const perpZ = dirX;
+
+  // Left wall
+  const leftX = midX + perpX * (fairwayWidth/2);
+  const leftZ = midZ + perpZ * (fairwayWidth/2);
   const leftWall = document.createElement('a-box');
-  leftWall.setAttribute('position', {
-    x: midX + perpX * (fairwayWidth/2), 
-    y: 0.5, 
-    z: midZ + perpZ * (fairwayWidth/2)
-  });
+  leftWall.setAttribute('position', `${leftX} 0.5 ${leftZ}`);
   leftWall.setAttribute('width', 0.2);
   leftWall.setAttribute('height', 1);
   leftWall.setAttribute('depth', length);
-  leftWall.setAttribute('rotation', `0 ${angle} 0`);
+  leftWall.setAttribute('rotation', `0 ${angleDeg} 0`);
   leftWall.setAttribute('color', '#5c4033');
   scene.appendChild(leftWall);
 
-  const rightWall = document.createElement('a-box');
-  rightWall.setAttribute('position', {
-    x: midX - perpX * (fairwayWidth/2), 
-    y: 0.5, 
-    z: midZ - perpZ * (fairwayWidth/2)
+  // Store left wall collision data as LINE SEGMENT
+  wallColliders.push({
+    x1: leftX - dirX * length/2,
+    z1: leftZ - dirZ * length/2,
+    x2: leftX + dirX * length/2,
+    z2: leftZ + dirZ * length/2
   });
+
+  // Right wall
+  const rightX = midX - perpX * (fairwayWidth/2);
+  const rightZ = midZ - perpZ * (fairwayWidth/2);
+  const rightWall = document.createElement('a-box');
+  rightWall.setAttribute('position', `${rightX} 0.5 ${rightZ}`);
   rightWall.setAttribute('width', 0.2);
   rightWall.setAttribute('height', 1);
   rightWall.setAttribute('depth', length);
-  rightWall.setAttribute('rotation', `0 ${angle} 0`);
+  rightWall.setAttribute('rotation', `0 ${angleDeg} 0`);
   rightWall.setAttribute('color', '#5c4033');
   scene.appendChild(rightWall);
 
-  return {
-    start, end, angle: angleRad, length,
-    leftWall: {el: leftWall, x: midX + perpX * (fairwayWidth/2), z: midZ + perpZ * (fairwayWidth/2), normalX: perpX, normalZ: perpZ},
-    rightWall: {el: rightWall, x: midX - perpX * (fairwayWidth/2), z: midZ - perpZ * (fairwayWidth/2), normalX: -perpX, normalZ: -perpZ}
-  };
+  // Store right wall collision data as LINE SEGMENT
+  wallColliders.push({
+    x1: rightX - dirX * length/2,
+    z1: rightZ - dirZ * length/2,
+    x2: rightX + dirX * length/2,
+    z2: rightZ + dirZ * length/2
+  });
 }
 
 // Build the course
-const segments = [];
 for(let i=0;i<path.length-1;i++){
-  segments.push(createSegment(path[i], path[i+1]));
+  createSegment(path[i], path[i+1]);
 }
 
 // ---- Obstacles ----
 const obstacles = [];
 function createObstacle(x,z,w=1,d=2){
   const ob = document.createElement('a-box');
-  ob.setAttribute('position',{x:x,y:0.2,z:z});
+  ob.setAttribute('position',`${x} 0.2 ${z}`);
   ob.setAttribute('width',w);
   ob.setAttribute('height',0.5);
   ob.setAttribute('depth',d);
@@ -131,21 +142,21 @@ createObstacle(8,-130,1,2);
 
 // ---- Hole ----
 const hole = document.createElement('a-cylinder');
-hole.setAttribute('position',{x:path[path.length-1].x,y:0,z:path[path.length-1].z});
+hole.setAttribute('position',`${path[path.length-1].x} 0 ${path[path.length-1].z}`);
 hole.setAttribute('radius',0.3);
 hole.setAttribute('height',0.1);
 hole.setAttribute('color','#000');
 scene.appendChild(hole);
 
 const holeFlagPole = document.createElement('a-cylinder');
-holeFlagPole.setAttribute('position',{x:path[path.length-1].x,y:0.8,z:path[path.length-1].z});
+holeFlagPole.setAttribute('position',`${path[path.length-1].x} 0.8 ${path[path.length-1].z}`);
 holeFlagPole.setAttribute('radius',0.03);
 holeFlagPole.setAttribute('height',1.6);
 holeFlagPole.setAttribute('color','#fff');
 scene.appendChild(holeFlagPole);
 
 const holeFlag = document.createElement('a-box');
-holeFlag.setAttribute('position',{x:path[path.length-1].x,y:1.5,z:path[path.length-1].z});
+holeFlag.setAttribute('position',`${path[path.length-1].x} 1.5 ${path[path.length-1].z}`);
 holeFlag.setAttribute('width',0.5);
 holeFlag.setAttribute('height',0.3);
 holeFlag.setAttribute('depth',0.02);
@@ -190,80 +201,57 @@ function updateCamera(){
 }
 updateCamera();
 
-// ---- Vector helper ----
-function reflectVelocity(vel, normal){
-  const dot = vel.x*normal.x + vel.z*normal.z;
+// Point to line segment distance and closest point
+function closestPointOnSegment(px, pz, x1, z1, x2, z2) {
+  const dx = x2 - x1;
+  const dz = z2 - z1;
+  const lenSq = dx*dx + dz*dz;
+  
+  if(lenSq === 0) return {x: x1, z: z1};
+  
+  let t = ((px - x1) * dx + (pz - z1) * dz) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  
   return {
-    x: vel.x - 2*dot*normal.x,
-    z: vel.z - 2*dot*normal.z
+    x: x1 + t * dx,
+    z: z1 + t * dz
   };
 }
 
-// Ball movement with FIXED bouncing physics
+// Ball movement
 function updateBall(){
   const pos = ballEl.getAttribute('position');
-  
-  // Store old position for collision response
-  const oldX = pos.x;
-  const oldZ = pos.z;
-  
   pos.x += ballVel.x;
   pos.z += ballVel.z;
   pos.y = 0.5;
 
-  const damping = 0.75;
   const ballRadius = 0.2;
-  let collided = false;
+  const wallThickness = 0.1;
 
-  // Check walls - Use line segment collision
-  for(let seg of segments){
-    const walls = [seg.leftWall, seg.rightWall];
-    for(let wall of walls){
-      // Get wall endpoints along its length
-      const angleRad = seg.angle;
-      const halfLen = seg.length / 2;
+  // Check ONLY wall colliders
+  for(let wall of wallColliders){
+    const closest = closestPointOnSegment(pos.x, pos.z, wall.x1, wall.z1, wall.x2, wall.z2);
+    
+    const dx = pos.x - closest.x;
+    const dz = pos.z - closest.z;
+    const dist = Math.sqrt(dx*dx + dz*dz);
+    
+    if(dist < ballRadius + wallThickness){
+      // Reflect velocity
+      const nx = dx / dist;
+      const nz = dz / dist;
       
-      const dirX = Math.sin(angleRad);
-      const dirZ = -Math.cos(angleRad);
-      
-      const x1 = wall.x - dirX * halfLen;
-      const z1 = wall.z - dirZ * halfLen;
-      const x2 = wall.x + dirX * halfLen;
-      const z2 = wall.z + dirZ * halfLen;
-      
-      // Point to line segment distance
-      const dx = x2 - x1;
-      const dz = z2 - z1;
-      const lenSq = dx*dx + dz*dz;
-      
-      let t = ((pos.x - x1) * dx + (pos.z - z1) * dz) / lenSq;
-      t = Math.max(0, Math.min(1, t));
-      
-      const closestX = x1 + t * dx;
-      const closestZ = z1 + t * dz;
-      
-      const distX = pos.x - closestX;
-      const distZ = pos.z - closestZ;
-      const dist = Math.sqrt(distX*distX + distZ*distZ);
-      
-      if(dist < ballRadius + 0.1 && !collided){
-        collided = true;
-        // Normalize distance vector for reflection
-        const nx = distX / dist;
-        const nz = distZ / dist;
+      const dot = ballVel.x * nx + ballVel.z * nz;
+      if(dot < 0){
+        ballVel.x -= 2 * dot * nx;
+        ballVel.z -= 2 * dot * nz;
+        ballVel.x *= 0.75;
+        ballVel.z *= 0.75;
         
-        const dot = ballVel.x * nx + ballVel.z * nz;
-        if(dot < 0){
-          ballVel.x -= 2 * dot * nx;
-          ballVel.z -= 2 * dot * nz;
-          ballVel.x *= damping;
-          ballVel.z *= damping;
-          
-          // Push ball out
-          const overlap = (ballRadius + 0.1) - dist;
-          pos.x += nx * overlap;
-          pos.z += nz * overlap;
-        }
+        // Push ball out
+        const overlap = (ballRadius + wallThickness) - dist;
+        pos.x += nx * overlap;
+        pos.z += nz * overlap;
       }
     }
   }
@@ -273,7 +261,6 @@ function updateBall(){
     const dx = pos.x - o.x;
     const dz = pos.z - o.z;
     
-    // Clamp to box edges
     const clampedX = Math.max(-o.w/2, Math.min(o.w/2, dx));
     const clampedZ = Math.max(-o.d/2, Math.min(o.d/2, dz));
     
@@ -284,8 +271,7 @@ function updateBall(){
     const distZ = pos.z - closestZ;
     const dist = Math.sqrt(distX*distX + distZ*distZ);
     
-    if(dist < ballRadius && !collided){
-      collided = true;
+    if(dist < ballRadius){
       const nx = distX / dist;
       const nz = distZ / dist;
       
@@ -293,8 +279,8 @@ function updateBall(){
       if(dot < 0){
         ballVel.x -= 2 * dot * nx;
         ballVel.z -= 2 * dot * nz;
-        ballVel.x *= damping;
-        ballVel.z *= damping;
+        ballVel.x *= 0.75;
+        ballVel.z *= 0.75;
         
         const overlap = ballRadius - dist;
         pos.x += nx * overlap;
