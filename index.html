@@ -29,14 +29,17 @@
 <script>
 const scene = document.querySelector('a-scene');
 
-// ---- Define the path as points ----
+// ---- Define the path as points - MORE CREATIVE LAYOUT ----
 const path = [
   {x:0, z:0},
-  {x:0, z:-40},
-  {x:20, z:-70},
-  {x:-10, z:-110},
-  {x:0, z:-150},
-  {x:0, z:-190}
+  {x:0, z:-20},      // straight
+  {x:15, z:-40},     // diagonal right
+  {x:5, z:-60},      // sharp left
+  {x:5, z:-80},      // straight narrow
+  {x:-10, z:-95},    // hard left turn
+  {x:10, z:-115},    // S-curve right
+  {x:8, z:-140},     // slight left
+  {x:8, z:-160}      // final straight to hole
 ];
 
 const fairwayWidth = 4;
@@ -58,12 +61,21 @@ function createSegment(start, end) {
   fairway.setAttribute('color', '#3a7d44');
   scene.appendChild(fairway);
 
-  // Walls
-  const offsetX = (fairwayWidth/2) * Math.cos(angle * Math.PI/180);
-  const offsetZ = (fairwayWidth/2) * Math.sin(angle * Math.PI/180);
+  // Calculate perpendicular direction for wall placement
+  const angleRad = angle * Math.PI / 180;
+  const perpX = -Math.sin(angleRad);
+  const perpZ = Math.cos(angleRad);
+
+  // Walls - properly positioned perpendicular to the segment
+  const midX = (start.x + end.x) / 2;
+  const midZ = (start.z + end.z) / 2;
 
   const leftWall = document.createElement('a-box');
-  leftWall.setAttribute('position', {x:(start.x+end.x)/2 - offsetX, y:0.5, z:(start.z+end.z)/2 + offsetZ});
+  leftWall.setAttribute('position', {
+    x: midX + perpX * (fairwayWidth/2), 
+    y: 0.5, 
+    z: midZ + perpZ * (fairwayWidth/2)
+  });
   leftWall.setAttribute('width', 0.2);
   leftWall.setAttribute('height', 1);
   leftWall.setAttribute('depth', length);
@@ -72,7 +84,11 @@ function createSegment(start, end) {
   scene.appendChild(leftWall);
 
   const rightWall = document.createElement('a-box');
-  rightWall.setAttribute('position', {x:(start.x+end.x)/2 + offsetX, y:0.5, z:(start.z+end.z)/2 - offsetZ});
+  rightWall.setAttribute('position', {
+    x: midX - perpX * (fairwayWidth/2), 
+    y: 0.5, 
+    z: midZ - perpZ * (fairwayWidth/2)
+  });
   rightWall.setAttribute('width', 0.2);
   rightWall.setAttribute('height', 1);
   rightWall.setAttribute('depth', length);
@@ -80,7 +96,11 @@ function createSegment(start, end) {
   rightWall.setAttribute('color', '#5c4033');
   scene.appendChild(rightWall);
 
-  return {start,end,angle,length,leftWall,rightWall};
+  return {
+    start, end, angle: angleRad, length,
+    leftWall: {el: leftWall, x: midX + perpX * (fairwayWidth/2), z: midZ + perpZ * (fairwayWidth/2), normalX: perpX, normalZ: perpZ},
+    rightWall: {el: rightWall, x: midX - perpX * (fairwayWidth/2), z: midZ - perpZ * (fairwayWidth/2), normalX: -perpX, normalZ: -perpZ}
+  };
 }
 
 // Build the course
@@ -101,10 +121,13 @@ function createObstacle(x,z,w=1,d=2){
   scene.appendChild(ob);
   obstacles.push({x:x,z:z,w:w,d:d});
 }
-createObstacle(0,-20,1,2);
-createObstacle(10,-50,1,2);
-createObstacle(-5,-90,1,2);
-createObstacle(5,-130,1,2);
+createObstacle(0,-10,1,2);
+createObstacle(10,-30,1.5,1.5);
+createObstacle(7,-50,1,2);
+createObstacle(5,-70,1.5,1);
+createObstacle(-5,-88,1,2);
+createObstacle(5,-105,1.5,1.5);
+createObstacle(8,-130,1,2);
 
 // ---- Hole ----
 const hole = document.createElement('a-cylinder');
@@ -176,36 +199,38 @@ function reflectVelocity(vel, normal){
   };
 }
 
-// Ball movement with proper bouncing
+// Ball movement with FIXED bouncing physics
 function updateBall(){
   const pos = ballEl.getAttribute('position');
   pos.x += ballVel.x;
   pos.z += ballVel.z;
   pos.y = 0.5;
 
-  const damping = 0.8;
+  const damping = 0.75;
 
-  // Check walls
+  // Check walls - PROPERLY NOW
   for(let seg of segments){
     const walls = [seg.leftWall, seg.rightWall];
-    for(let w of walls){
-      const wPos = w.getAttribute('position');
-      const wRot = w.getAttribute('rotation').y * Math.PI/180;
-      const cos = Math.cos(wRot);
-      const sin = Math.sin(wRot);
-      const halfW = w.getAttribute('width')/2 + 0.2;
-      const halfD = w.getAttribute('depth')/2 + 0.2;
+    for(let wall of walls){
+      const cos = Math.cos(seg.angle);
+      const sin = Math.sin(seg.angle);
+      const halfW = 0.2/2 + 0.2;
+      const halfD = seg.length/2 + 0.2;
 
       // Transform ball pos to wall local space
-      const localX = cos*(pos.x - wPos.x) + sin*(pos.z - wPos.z);
-      const localZ = -sin*(pos.x - wPos.x) + cos*(pos.z - wPos.z);
+      const localX = cos*(pos.x - wall.x) + sin*(pos.z - wall.z);
+      const localZ = -sin*(pos.x - wall.x) + cos*(pos.z - wall.z);
 
       if(Math.abs(localX)<halfW && Math.abs(localZ)<halfD){
-        // Determine normal (approx axis-aligned)
-        const normal = Math.abs(localX) > Math.abs(localZ) ? {x: Math.sign(localX), z:0} : {x:0,z:Math.sign(localZ)};
+        // Use the pre-calculated normal from wall data
+        const normal = {x: wall.normalX, z: wall.normalZ};
         const newVel = reflectVelocity(ballVel, normal);
         ballVel.x = newVel.x*damping;
         ballVel.z = newVel.z*damping;
+        
+        // Push ball away from wall to prevent sticking
+        pos.x += wall.normalX * 0.15;
+        pos.z += wall.normalZ * 0.15;
       }
     }
   }
@@ -213,19 +238,22 @@ function updateBall(){
   // Check obstacles
   for(let o of obstacles){
     if(Math.abs(pos.x-o.x)<o.w/2+0.2 && Math.abs(pos.z-o.z)<o.d/2+0.2){
-      // Determine normal based on nearest axis
       const dx = pos.x - o.x;
       const dz = pos.z - o.z;
       const normal = Math.abs(dx) > Math.abs(dz) ? {x: Math.sign(dx), z:0} : {x:0,z:Math.sign(dz)};
       const newVel = reflectVelocity(ballVel, normal);
       ballVel.x = newVel.x*damping;
       ballVel.z = newVel.z*damping;
+      
+      // Push ball away from obstacle
+      pos.x += normal.x * 0.15;
+      pos.z += normal.z * 0.15;
     }
   }
 
   // Friction
-  ballVel.x *= 0.95;
-  ballVel.z *= 0.95;
+  ballVel.x *= 0.97;
+  ballVel.z *= 0.97;
   if(Math.abs(ballVel.x)<0.001) ballVel.x=0;
   if(Math.abs(ballVel.z)<0.001) ballVel.z=0;
 
