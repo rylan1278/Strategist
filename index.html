@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mini Golf Game</title>
+<title>Mini Golf Maze Course</title>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 </head>
 <body>
@@ -11,29 +11,33 @@
 
   <!-- Sky and ground -->
   <a-sky color="#87CEEB"></a-sky>
-  <a-plane color="#2d5016" rotation="-90 0 0" width="300" height="300"></a-plane>
+  <a-plane color="#2d5016" rotation="-90 0 0" width="500" height="500"></a-plane>
   
-  <!-- Course sections (fairways) -->
-  <a-box position="0 0.01 -20" width="8" height="0.02" depth="40" color="#3a7d44"></a-box>
-  <a-box position="3 0.01 -60" width="8" height="0.02" depth="40" rotation="0 10 0" color="#3a7d44"></a-box>
-  <a-box position="-2 0.01 -100" width="8" height="0.02" depth="50" rotation="0 -15 0" color="#3a7d44"></a-box>
-  <a-box position="0 0.01 -150" width="8" height="0.02" depth="50" color="#3a7d44"></a-box>
-
-  <!-- Green at the end -->
+  <!-- Path/fairway sections -->
+  <a-box position="0 0.01 -20" width="4" height="0.02" depth="40" color="#3a7d44"></a-box>
+  <a-box position="5 0.01 -60" width="4" height="0.02" depth="40" rotation="0 15 0" color="#3a7d44"></a-box>
+  <a-box position="-3 0.01 -100" width="4" height="0.02" depth="50" rotation="0 -20 0" color="#3a7d44"></a-box>
+  <a-box position="2 0.01 -150" width="4" height="0.02" depth="40" rotation="0 10 0" color="#3a7d44"></a-box>
   <a-cylinder position="0 0.02 -190" radius="3" height="0.03" color="#4a9d5a"></a-cylinder>
 
-  <!-- Walls -->
-  <a-box position="-4.1 0.5 -50" width="0.2" height="1" depth="200" color="#5c4033"></a-box>
-  <a-box position="4.1 0.5 -50" width="0.2" height="1" depth="200" color="#5c4033"></a-box>
+  <!-- Walls along fairway -->
+  <a-box position="-2 0.5 -20" width="0.2" height="1" depth="40" color="#5c4033"></a-box>
+  <a-box position="2 0.5 -20" width="0.2" height="1" depth="40" color="#5c4033"></a-box>
 
-  <!-- Obstacles -->
-  <a-box position="0 0.2 -30" width="1.5" height="0.5" depth="3" color="#d62828"></a-box>
-  <a-box position="2 0.2 -45" width="1" height="0.5" depth="2" color="#d62828"></a-box>
-  <a-box position="-3 0.2 -70" width="1" height="0.5" depth="3" color="#d62828"></a-box>
-  <a-box position="1 0.2 -90" width="2" height="0.5" depth="2" color="#d62828"></a-box>
-  <a-box position="-1.5 0.2 -120" width="1" height="0.5" depth="3" color="#d62828"></a-box>
-  <a-box position="2 0.2 -140" width="1.5" height="0.5" depth="2" color="#d62828"></a-box>
-  <a-box position="0 0.2 -160" width="2" height="0.5" depth="2" color="#d62828"></a-box>
+  <a-box position="3 0.5 -60" width="0.2" height="1" depth="40" rotation="0 15 0" color="#5c4033"></a-box>
+  <a-box position="7 0.5 -60" width="0.2" height="1" depth="40" rotation="0 15 0" color="#5c4033"></a-box>
+
+  <a-box position="-4 0.5 -100" width="0.2" height="1" depth="50" rotation="0 -20 0" color="#5c4033"></a-box>
+  <a-box position="-0.5 0.5 -100" width="0.2" height="1" depth="50" rotation="0 -20 0" color="#5c4033"></a-box>
+
+  <a-box position="1 0.5 -150" width="0.2" height="1" depth="40" rotation="0 10 0" color="#5c4033"></a-box>
+  <a-box position="5 0.5 -150" width="0.2" height="1" depth="40" rotation="0 10 0" color="#5c4033"></a-box>
+
+  <!-- Obstacles (bounce like walls) -->
+  <a-box position="0 0.2 -40" width="1" height="0.5" depth="2" color="#d62828"></a-box>
+  <a-box position="5 0.2 -75" width="1" height="0.5" depth="2" color="#d62828"></a-box>
+  <a-box position="-2 0.2 -120" width="1" height="0.5" depth="2" color="#d62828"></a-box>
+  <a-box position="3 0.2 -160" width="1" height="0.5" depth="2" color="#d62828"></a-box>
 
   <!-- Hole -->
   <a-cylinder id="hole" position="0 0 -190" radius="0.3" height="0.1" color="#000000"></a-cylinder>
@@ -100,34 +104,36 @@ function updateCamera() {
 }
 updateCamera();
 
-// Ball update with wall collisions
+// Ball update with collisions
 function updateBall() {
   const pos = ball.getAttribute("position");
   pos.x += ballVel.x;
   pos.z += ballVel.z;
   pos.y = 0.5;
-  
-  // Wall collisions
-  if (pos.x < -3.9) { pos.x = -3.9; ballVel.x *= -0.8; }
-  if (pos.x > 3.9) { pos.x = 3.9; ballVel.x *= -0.8; }
 
-  // Obstacle collisions
-  const obstacles = [
-    {x:0, z:-30, w:1.5, d:3},
-    {x:2, z:-45, w:1, d:2},
-    {x:-3, z:-70, w:1, d:3},
-    {x:1, z:-90, w:2, d:2},
-    {x:-1.5, z:-120, w:1, d:3},
-    {x:2, z:-140, w:1.5, d:2},
-    {x:0, z:-160, w:2, d:2}
+  // Wall collision boxes
+  const wallBoxes = [
+    {x:-2, z:-20, w:0.2, d:40},{x:2, z:-20, w:0.2, d:40},
+    {x:3, z:-60, w:0.2, d:40},{x:7, z:-60, w:0.2, d:40},
+    {x:-4, z:-100, w:0.2, d:50},{x:-0.5, z:-100, w:0.2, d:50},
+    {x:1, z:-150, w:0.2, d:40},{x:5, z:-150, w:0.2, d:40}
   ];
-  for (let o of obstacles) {
-    if (Math.abs(pos.x - o.x) < o.w/2 + 0.2 && Math.abs(pos.z - o.z) < o.d/2 + 0.2) {
+
+  // Obstacles (bounce like walls)
+  const obstacles = [
+    {x:0, z:-40, w:1, d:2},{x:5, z:-75, w:1, d:2},
+    {x:-2, z:-120, w:1, d:2},{x:3, z:-160, w:1, d:2}
+  ];
+
+  const allColliders = wallBoxes.concat(obstacles);
+  for (let c of allColliders) {
+    if (Math.abs(pos.x - c.x) < c.w/2 + 0.2 && Math.abs(pos.z - c.z) < c.d/2 + 0.2) {
       ballVel.x *= -0.8;
       ballVel.z *= -0.8;
     }
   }
 
+  // Friction
   ballVel.x *= 0.95;
   ballVel.z *= 0.95;
   if (Math.abs(ballVel.x) < 0.001) ballVel.x = 0;
@@ -138,7 +144,7 @@ function updateBall() {
 }
 updateBall();
 
-// Aim arrow update
+// Aim arrow
 function updateAimArrow() {
   const pos = ball.getAttribute("position");
   const endX = pos.x + Math.sin(aimAngle) * 2;
