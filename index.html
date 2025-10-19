@@ -70,7 +70,6 @@ let strokes = 0;
 let ballVel = {x:0,z:0};
 let aimAngle = 0;
 
-// ---- Helper: create segments ----
 function createSegment(start, end, extensions = {}) {
   const dx = end.x - start.x;
   const dz = end.z - start.z;
@@ -138,7 +137,7 @@ function createSegment(start, end, extensions = {}) {
   wallColliders.push({x1:rightStartX, z1:rightStartZ, x2:rightEndX, z2:rightEndZ});
 }
 
-// ---- Path points ----
+// The horrendus array.
 const path = [
   {x:0, z:0},
   {x:0, z:-20},
@@ -149,7 +148,7 @@ const path = [
   {x:8, z:-120}
 ];
 
-// ---- Create segments with wall extensions ----
+// Slight adjustments because path's dont connect fully
 createSegment(path[0], path[1], { leftStart:.5, leftEnd:-0.8, rightStart:.5, rightEnd:0.9 });
 createSegment(path[1], path[2], { leftStart:-0.7, leftEnd:1.5, rightStart:0.8, rightEnd:-1.5 });
 createSegment(path[2], path[3], { leftStart:1.5, leftEnd:0.3, rightStart:-1.5, rightEnd:0.4 });
@@ -157,7 +156,7 @@ createSegment(path[3], path[4], { leftStart:0.3, leftEnd:-1.5, rightStart:0.4, r
 createSegment(path[4], path[5], { leftStart:-1.5, leftEnd:1, rightStart:1.6, rightEnd:-.9 });
 createSegment(path[5], path[6], { leftStart:1, leftEnd:0.7, rightStart:-1, rightEnd:0.8 });
 
-// ---- Start wall ----
+// Start wall, doesn't work with array function
 (function(){
   const start = path[0];
   const offsetZ = .5;
@@ -173,7 +172,7 @@ createSegment(path[5], path[6], { leftStart:1, leftEnd:0.7, rightStart:-1, right
   wallColliders.push({x1: midX - fairwayWidth/2, z1: midZ, x2: midX + fairwayWidth/2, z2: midZ});
 })();
 
-// ---- End wall ----
+// End wall, doesn't work with array function
 (function(){
   const end = path[path.length-1];
   const offsetZ = -0.6;
@@ -189,7 +188,7 @@ createSegment(path[5], path[6], { leftStart:1, leftEnd:0.7, rightStart:-1, right
   wallColliders.push({x1: midX - fairwayWidth/2, z1: midZ, x2: midX + fairwayWidth/2, z2: midZ});
 })();
 
-// ---- Obstacles ----
+// Obstacles for extra credit, teehee
 function createObstacle(x,z,w=1,d=2){
   const ob = document.createElement('a-box');
   ob.setAttribute('position',`${x} 0.2 ${z}`);
@@ -208,7 +207,7 @@ createObstacle(-1,-88,1,2);
 createObstacle(8,-105,1.5,1.5);
 createObstacle(9,-118,1,2);
 
-// ---- Hole ----
+//This is for the hole
 const holeObj = document.createElement('a-cylinder');
 holeObj.setAttribute('position',`${path[path.length-1].x} 0 ${path[path.length-1].z}`);
 holeObj.setAttribute('radius',0.3);
@@ -231,7 +230,7 @@ holeFlag.setAttribute('depth',0.02);
 holeFlag.setAttribute('color','#f00');
 scene.appendChild(holeFlag);
 
-// ---- Ball controls ----
+// How the camera moves with the ball, I felt this was really important
 const cameraRig = document.querySelector('#cameraRig');
 const camera = document.querySelector('#camera');
 let orbitX=0,orbitZ=6,orbitHeight=3;
@@ -239,6 +238,7 @@ const keys={};
 window.addEventListener('keydown', e=>keys[e.code]=true);
 window.addEventListener('keyup', e=>keys[e.code]=false);
 
+//How the ball moves with the keyboard
 window.addEventListener('keydown', e=>{
   if(e.code==='KeyQ') aimAngle-=0.05;
   if(e.code==='KeyE') aimAngle+=0.05;
@@ -251,7 +251,9 @@ window.addEventListener('keydown', e=>{
   }
 });
 
-// ---- Camera update ----
+// Wanted camera to move like original THREE.js but I wanted to lock the height and make it follow the ball
+//If you're playing, you'll find out when you turn, W still moves you north, S for south, etc.
+//no mater what way you're facing. No, I don't know how to fix it.
 function updateCamera(){
   const pos = ballEl.getAttribute('position');
   if(keys['KeyW']) orbitZ-=0.5;
@@ -265,7 +267,7 @@ function updateCamera(){
 }
 updateCamera();
 
-// ---- Collision helpers ----
+// I have no idea what this is, GPT help
 function closestPointOnSegment(px, pz, x1, z1, x2, z2) {
   const dx = x2 - x1;
   const dz = z2 - z1;
@@ -276,7 +278,7 @@ function closestPointOnSegment(px, pz, x1, z1, x2, z2) {
   return {x: x1 + t*dx, z: z1 + t*dz};
 }
 
-// ---- Ball update ----
+// Updating the ball position, also works for checking position with walls and hole for "collision"
 function updateBall(){
   const pos = ballEl.getAttribute('position');
   pos.x += ballVel.x;
@@ -285,7 +287,7 @@ function updateBall(){
   const ballRadius = 0.2;
   const wallThickness = 0.1;
 
-  // Wall collisions
+  // Wall collisions, self explanatory
   for(let wall of wallColliders){
     const closest = closestPointOnSegment(pos.x,pos.z,wall.x1,wall.z1,wall.x2,wall.z2);
     const dx = pos.x - closest.x;
@@ -307,7 +309,7 @@ function updateBall(){
     }
   }
 
-  // Obstacles collisions
+//Making obstacles for extra credit teehee
   for(let o of obstacles){
     const dx = pos.x - o.x;
     const dz = pos.z - o.z;
@@ -333,14 +335,13 @@ function updateBall(){
       }
     }
   }
-
-  // Friction
+//"Friction" for the homemade physics engine, basically I need the ball to slow down
   ballVel.x *= 0.97;
   ballVel.z *= 0.97;
   if(Math.abs(ballVel.x)<0.001) ballVel.x=0;
   if(Math.abs(ballVel.z)<0.001) ballVel.z=0;
 
-  // ---- Check win ----
+  // Checking the ball for win loaction at each frame using requestAnimationFrame
   const holePos = path[path.length-1];
   const dx = pos.x - holePos.x;
   const dz = pos.z - holePos.z;
@@ -361,7 +362,8 @@ function updateBall(){
 }
 updateBall();
 
-// ---- Aim arrow ----
+//This portion is for knowing where you're aiming
+//Drag didn't work so I decided we'll aim with our keyboard, needed a visual.
 const aimArrow = document.querySelector('#aimArrow');
 function updateAimArrow(){
   const pos = ballEl.getAttribute('position');
